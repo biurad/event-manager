@@ -9,7 +9,7 @@ Events serve as a great way to decouple various aspects of your application, sin
 The recommended way to install Event Manager is via Composer:
 
 ```bash
-composer require biurad/event-manager
+composer require biurad/biurad-events-bus
 ```
 
 It requires PHP version 7.0 and supports PHP up to 7.4. The dev-master version requires PHP 7.1.
