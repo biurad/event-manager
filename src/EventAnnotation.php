@@ -17,11 +17,13 @@ declare(strict_types=1);
  * @since     Version 0.1
  */
 
-namespace BiuradPHP\Event;
+namespace BiuradPHP\Events;
 
-use Doctrine\Common\Annotations\Reader;
-use BiuradPHP\Event\Interfaces\BroadcastInterface;
-use BiuradPHP\Event\Interfaces\EventInterface;
+use BiuradPHP\Events\Interfaces\EventBroadcastInterface;
+use BiuradPHP\Events\Interfaces\EventDispatcherInterface;
+use BiuradPHP\Events\Interfaces\EventSubscriberInterface;
+use BiuradPHP\Loader\AnnotationLocator;
+use BiuradPHP\Loader\Interfaces\AnnotationInterface;
 
 /**
  * EventAnnotation loads listeners from a PHP class or its methods.
@@ -52,106 +54,51 @@ use BiuradPHP\Event\Interfaces\EventInterface;
  *  }
  * ```
  */
-class EventAnnotation
+final class EventAnnotation implements AnnotationInterface
 {
     /**
-     * @var \BiuradPHP\Event\Annotation\Listener
+     * @var string<Annotation\Listener>
      */
-    protected $eventAnnotationClass = 'BiuradPHP\\Event\\Annotation\\Listener';
+    private $eventAnnotationClass = 'BiuradPHP\\Events\\Annotation\\Listener';
 
     /**
-     * @var string Namespace for Event Annotation;
+     * @var EventDispatcherInterface
      */
-    protected $eventNamespace;
+    private $events;
 
     /**
      * The RouteAnnotation Constructor.
      *
-     * @param string                              $namespace
-     * @param array                               $paths
-     * @param EventInterface                      $events
-     * @param \Doctrine\Common\Annotations\Reader $reader
+     * @param EventDispatcherInterface $events
      */
-    public function __construct(string $namespace, $paths = [], EventInterface $events, Reader $reader)
+    public function __construct(EventDispatcherInterface $events)
     {
-        $this->eventNamespace = $namespace;
-
-        return $this->register($events, $reader, $paths);
-    }
-
-    /**
-     * @param array $dirs
-     *
-     * @return array
-     */
-    private function findAllClasses(array $dirs)
-    {
-        $classes = [];
-
-        foreach ($dirs as $prefix => $dir) {
-            /** @var \RecursiveIteratorIterator|\SplFileInfo[] $iterator */
-            $iterator = new \RecursiveIteratorIterator(
-                new \RecursiveDirectoryIterator($dir),
-                \RecursiveIteratorIterator::LEAVES_ONLY
-            );
-
-            foreach ($iterator as $file) {
-                if (($fileName = $file->getBasename('.php')) == $file->getBasename()) {
-                    continue;
-                }
-
-                $classes[] = str_replace('.', '\\', $fileName);
-            }
-        }
-
-        return $classes;
+        $this->events = $events;
     }
 
     /**
      * Load the annoatation for events.
-     *
-     * @param EventInterface                      $events
-     * @param \Doctrine\Common\Annotations\Reader $reader
-     * @param array|string                        $path
      */
-    private function register(EventInterface $events, Reader $reader, $path)
+    public function register(AnnotationLocator $annotation): void
     {
-        $classes = $this->findAllClasses((array) $path, 'php');
-
-        foreach ($classes as $class) {
-            try {
-                $reflector = new \ReflectionClass($this->eventNamespace.$class);
-            } catch (\ReflectionException $e) {
-                throw new \InvalidArgumentException(
-                    sprintf('Annotations from class [%s] cannot be read as it is not found.', $class)
+        foreach ($annotation->findClasses($this->eventAnnotationClass) as [$reflector, $classAnnotation]) {
+            if ($reflector->implementsInterface(EventBroadcastInterface::class)) {
+                $this->events->addListener(
+                    $classAnnotation->getEvent(),
+                    $reflector->getName(),
+                    $classAnnotation->getPriority()
                 );
+            } elseif ($reflector->implementsInterface(EventSubscriberInterface::class)) {
+                $this->events->addSubscriber($reflector->getName());
             }
+        }
 
-            if ($reflector->isAbstract()) {
-                throw new \InvalidArgumentException(
-                    sprintf('Annotations from class [%s] cannot be read as it is abstract.', $class->getName())
-                );
-            }
-
-            foreach ($reader->getClassAnnotations($reflector) as $classAnnotation) {
-                if ($classAnnotation instanceof $this->eventAnnotationClass) {
-                    if ($reflector->implementsInterface(BroadcastInterface::class)) {
-                        $events->listen(
-                            $classAnnotation->getPriority(), $reflector->getName()
-                        );
-                    }
-                }
-            }
-
-            foreach ($reflector->getMethods() as $method) {
-                foreach ($reader->getMethodAnnotations($method) as $annotation) {
-                    if ($annotation instanceof $this->eventAnnotationClass) {
-                        $events->listen(
-                            $annotation->getPriority(), [$reflector->getName(), $method->getName()]
-                        );
-                    }
-                }
-            }
+        foreach ($annotation->findMethods($this->eventAnnotationClass) as [$method, $methodAnnotation]) {
+            $this->events->addListener(
+                $methodAnnotation->getEvent(),
+                [$method->class, $method->getName()],
+                $methodAnnotation->getPriority()
+            );
         }
     }
 }

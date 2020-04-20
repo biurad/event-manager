@@ -17,11 +17,9 @@ declare(strict_types=1);
  * @since     Version 0.1
  */
 
-namespace BiuradPHP\Event\Interfaces;
+namespace BiuradPHP\Events\Interfaces;
 
-use Psr\EventDispatcher\EventInterface;
-
-interface BroadcastInterface extends EventInterface
+interface EventBroadcastInterface
 {
     /**
      * Get the channels the event should broadcast on.

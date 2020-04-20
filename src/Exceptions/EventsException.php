@@ -17,10 +17,8 @@ declare(strict_types=1);
  * @since     Version 0.1
  */
 
-namespace BiuradPHP\Event\Exceptions;
+namespace BiuradPHP\Events\Exceptions;
 
-use RuntimeException;
-
-class EventsException extends RuntimeException
+class EventsException extends \RuntimeException
 {
 }

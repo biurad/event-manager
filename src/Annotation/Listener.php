@@ -17,7 +17,7 @@ declare(strict_types=1);
  * @since     Version 0.1
  */
 
-namespace BiuradPHP\Event\Annotation;
+namespace BiuradPHP\Events\Annotation;
 
 /**
  *  Annotation class for @Listener().
@@ -27,25 +27,43 @@ namespace BiuradPHP\Event\Annotation;
  */
 class Listener
 {
-    /**
-     * @var string
-     */
-    public $priority;
+    /** @var int */
+    private $priority = 1;
 
-    public function __construct($value = null)
+    /** @var callable|\Closure|string|null */
+    private $event;
+
+    public function __construct($data = null)
     {
-        if (isset($value['value']) && is_string($value['value'])) {
-            $this->priority = (string) $value['value'];
+        if (isset($data['value'])) {
+            $data['event'] = (string) $data['value'];
+            unset($data['value']);
+        }
+
+        foreach (!empty($data) ? $data : [] as $key => $listener) {
+            if (! property_exists($this, $key)) {
+                throw new \BadMethodCallException(sprintf('Unknown property "%s" on annotation "%s".', $key, \get_class($this)));
+            }
+
+            $this->$key = $listener;
         }
     }
 
     /**
-     * Get the value of priority
-     *
-     * @return  string
+     * Get the event's priority
      */
-    public function getPriority()
+    public function getPriority(): int
     {
         return $this->priority;
+    }
+
+    /**
+     * Get the event listener
+     *
+     * @return callable|\Closure|string|null
+     */
+    public function getEvent()
+    {
+        return $this->event;
     }
 }
