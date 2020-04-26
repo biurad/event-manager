@@ -51,14 +51,6 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, LoggerAwar
     protected static $container;
 
     /**
-     * Stores information about the events
-     * for display in the profiling.
-     *
-     * @var array
-     */
-    protected static $performanceLog = [];
-
-    /**
      * Set the value of container.
      *
      * @param \BiuradPHP\DependencyInjection\Interfaces\ContainerInterface $container
@@ -293,7 +285,7 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, LoggerAwar
                 $listener = $this->createClassCallable($listener);
             }
 
-            return $this->resolveCallable($listener, $payload);
+            return $this->resolveCallable($listener,$payload);
         };
     }
 
@@ -305,7 +297,7 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, LoggerAwar
      *
      * @return Clsoure|string|null
      */
-    private function resolveCallable($unresolved, &$arguments)
+    private function resolveCallable($unresolved, $arguments)
     {
         if (null === static::$container) {
             return $unresolved(...array_values($arguments));
@@ -362,8 +354,9 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, LoggerAwar
             }
 
             try {
-                $parameters = $listener instanceof \Closure
-                    ? array_unshift($parameters, $context['event']) : $parameters;
+                if ($listener instanceof \Closure) {
+                    return $listener($context['event'], $parameters);
+                }
 
                 $this->resolveCallable($listener, $parameters);
             } finally {
