@@ -19,6 +19,8 @@ declare(strict_types=1);
 
 namespace BiuradPHP\Events;
 
+use InvalidArgumentException;
+
 /**
  * Class to provide context information for a passed event.
  *
@@ -49,8 +51,8 @@ class EventContext
     }
 
     /**
-     * @param  EventListener $event The event to add context to.
-     * @return null
+     * @param EventListener $event The event to add context to.
+     * @return void
      */
     public function setEvent(EventListener $event): void
     {
@@ -63,7 +65,7 @@ class EventContext
     public function getEvent(): EventListener
     {
         if (! $this->event) {
-            throw new \InvalidArgumentException(sprintf('%s: expects an event to have been set.', __METHOD__));
+            throw new InvalidArgumentException(sprintf('%s: expects an event to have been set.', __METHOD__));
         }
 
         return $this->event;

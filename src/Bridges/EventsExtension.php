@@ -19,11 +19,25 @@ declare(strict_types=1);
 
 namespace BiuradPHP\Events\Bridges;
 
+use BiuradPHP\Events\EventDispatcher;
+use BiuradPHP\Events\TraceableEventDispatcher;
 use Nette, BiuradPHP;
 use Nette\Schema\Expect;
 
 class EventsExtension extends Nette\DI\CompilerExtension
 {
+    /**
+     * Whether or not we are in debug/development mode.
+     *
+     * @var bool
+     */
+    private $debug;
+
+    public function __construct(bool $isDevelopmentMode = false)
+    {
+        $this->debug = $isDevelopmentMode;
+    }
+
     /**
      * {@inheritDoc}
      */
@@ -42,7 +56,7 @@ class EventsExtension extends Nette\DI\CompilerExtension
         $builder = $this->getContainerBuilder();
 
         $builder->addDefinition($this->prefix('dispatcher'))
-            ->setFactory(BiuradPHP\Events\EventDispatcher::class)
+            ->setFactory($this->debug ? TraceableEventDispatcher::class : EventDispatcher::class)
             ->addSetup('setContainer')
             ->addSetup('setLogger')
             ->addSetup(

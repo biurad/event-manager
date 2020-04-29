@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection PhpUndefinedMethodInspection */
 
 declare(strict_types=1);
 
@@ -19,15 +19,20 @@ declare(strict_types=1);
 
 namespace BiuradPHP\Events;
 
-use BiuradPHP\DependencyInjection\Interfaces\FactoryInterface;
-use BiuradPHP\Events\Exceptions\EventsException;
-use Illuminate\Contracts\Container\Container as ContainerContract;
 use Psr\Container\ContainerInterface;
+use BiuradPHP\Events\Exceptions\EventsException;
+use BiuradPHP\DependencyInjection\Interfaces\FactoryInterface;
 use BiuradPHP\Events\Interfaces\EventBroadcastInterface;
 use BiuradPHP\Events\Interfaces\EventSubscriberInterface;
 use Psr\EventDispatcher\StoppableEventInterface;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
+use Closure;
+use ReflectionClass;
+use ReflectionException;
+use SplPriorityQueue;
+
+use function is_string;
 
 /**
  * The Event Dispatcher.
@@ -53,7 +58,8 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, LoggerAwar
     /**
      * Set the value of container.
      *
-     * @param \BiuradPHP\DependencyInjection\Interfaces\ContainerInterface $container
+     * @param ContainerInterface $container
+     * @return EventDispatcher
      */
     public function setContainer(ContainerInterface $container): EventDispatcher
     {
@@ -70,12 +76,14 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, LoggerAwar
      */
     public function getListenersForEvent(object $event): iterable
     {
-        $queue = new \SplPriorityQueue();
+        $queue = new SplPriorityQueue();
+
         foreach ($this->listeners as $eventName => $listeners) {
             if (
                 is_object($event) && class_exists($eventName) &&
                 get_class($event) === $eventName
             ) {
+                /** @var EventListener $listener */
                 foreach ($listeners as $listener) {
                     $queue->insert($listener->getListener(), $listener->getPriority());
                 }
@@ -87,6 +95,7 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, LoggerAwar
 
     /**
      * {@inheritdoc}
+     * @throws ReflectionException
      */
     public function dispatch($event, array $payload = [])
     {
@@ -139,12 +148,14 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, LoggerAwar
      * Fire an event until the first non-null response is returned.
      *
      * @param string|object $event
-     * @param mixed         $payload
+     * @param mixed $payload
      *
      * @return mixed
+     * @throws ReflectionException
      */
     public function dispatchNow($event, array $payload = [])
     {
+        /** @noinspection PhpMethodParametersCountMismatchInspection */
         return $this->dispatch($event, $payload, true);
     }
 
@@ -188,7 +199,7 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, LoggerAwar
      * Get all of the listeners for a given event name.
      *
      * @param  string  $eventName
-     * @return \Closure[]|object[]|array
+     * @return Closure[]|object[]|array
      */
     public function getListeners(string $eventName)
     {
@@ -197,7 +208,7 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, LoggerAwar
             ? $this->addInterfaceListeners($eventName, $listeners)
             : ($listeners);
 
-        $queue = new \SplPriorityQueue();
+        $queue = new SplPriorityQueue();
         foreach ($listeners as &$listener) {
             $queue->insert($listener->getListener(), $listener->getPriority());
         }
@@ -225,6 +236,7 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, LoggerAwar
 
     /**
      * {@inheritdoc}
+     * @throws ReflectionException
      */
     public function addSubscriber($subscriber)
     {
@@ -233,9 +245,9 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, LoggerAwar
         }
 
         foreach ($subscriber->getSubscribedEvents() as $eventName => $params) {
-            if (\is_string($params)) {
+            if (is_string($params)) {
                 $this->addListener($eventName, [$subscriber, $params]);
-            } elseif ((count($params) === 1 || is_int($params[1])) && \is_string($params[0])) {
+            } elseif ((count($params) === 1 || is_int($params[1])) && is_string($params[0])) {
                 $this->addListener($eventName, [$subscriber, $params[0]], isset($params[1]) && is_int($params[1]) ? $params[1] : 1);
             } else {
                 foreach ($params as $listener) {
@@ -248,6 +260,7 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, LoggerAwar
 
     /**
      * {@inheritdoc}
+     * @throws ReflectionException
      */
     public function removeSubscriber($subscriber)
     {
@@ -267,25 +280,25 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, LoggerAwar
     /**
      * Register an event listener with the dispatcher.
      *
-     * @param \Closure|callable|object|string $listener
+     * @param Closure|callable|object|string $listener
      *
-     * @return \Closure|object|mixed
+     * @return Closure|object|mixed
      */
     public function makeListener($listener)
     {
-        if (!$listener instanceof \Closure && (is_object($listener) || $listener[0] instanceof EventSubscriberInterface)) {
+        if (!$listener instanceof Closure && (is_object($listener) || $listener[0] instanceof EventSubscriberInterface)) {
             return $this->createClassCallable($listener);
         }
 
-        return function ($event, $payload) use (&$listener) {
+        return function (/** @noinspection PhpUnusedParameterInspection */ $event, array $payload) use (&$listener) {
             if (
-                (!$listener instanceof \Closure  && is_object($listener)) ||
+                (!$listener instanceof Closure  && is_object($listener)) ||
                 is_string($listener) && class_exists($listener)
             ) {
                 $listener = $this->createClassCallable($listener);
             }
 
-            return $this->resolveCallable($listener,$payload);
+            return $this->resolveCallable($listener, $payload);
         };
     }
 
@@ -295,7 +308,7 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, LoggerAwar
      * @param Closure|callable|mixed $unresolved
      * @param array         $arguments
      *
-     * @return Clsoure|string|null
+     * @return Closure|string|null
      */
     private function resolveCallable($unresolved, $arguments)
     {
@@ -303,7 +316,7 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, LoggerAwar
             return $unresolved(...array_values($arguments));
         } elseif (self::$container instanceof FactoryInterface) {
             return static::$container->callMethod($unresolved, $arguments);
-        } elseif (self::$container instanceof ContainerContract) {
+        } elseif (method_exists(self::$container, 'call')) {
             return static::$container->call($unresolved, $arguments);
         }
 
@@ -328,23 +341,24 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, LoggerAwar
      * This method can be overridden to add functionality that is executed
      * for each listener.
      *
-     * @param callable[]                     $listeners The event listeners
-     * @param object|\Closure|StoppableEventInterface $event     The event object to pass to the event handlers/listeners
+     * @param callable[] $listeners The event listeners
+     * @param object|Closure|StoppableEventInterface $event The event object to pass to the event handlers/listeners\
+     * @param array $arguments
+     *
+     * @return void
      */
-    protected function callListeners(iterable $listeners, $event, array $arguments)
+    protected function callListeners(iterable $listeners, $event, array $arguments): void
     {
         $stoppable = $event instanceof StoppableEventInterface;
         $parameters = array_merge((null !== self::$container ? [$event] : [$event, $this]), $arguments);
 
-        /** @var callable|array $listener */
+        /** @var callable|CLosure $listener */
         foreach ($listeners as $listener) {
-            if (null !== $this->logger) {
-                $context = [
-                    'event'     => get_class($event),
-                    'listener'  => $listener instanceof \Closure ? 'Closure' : get_class($listener[0]),
-                    'method'    => $listener instanceof \Closure ? 'Type' : $listener[1]
-                ];
-            }
+            $context = [
+                'event'     => get_class($event),
+                'listener'  => $listener instanceof Closure ? 'Closure' : get_class($listener[0]),
+                'method'    => $listener instanceof Closure ? 'Type' : $listener[1]
+            ];
 
             if ($stoppable && $event->isPropagationStopped()) {
                 if (null !== $this->logger) {
@@ -354,8 +368,9 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, LoggerAwar
             }
 
             try {
-                if ($listener instanceof \Closure) {
-                    return $listener($context['event'], $parameters);
+                if ($listener instanceof Closure) {
+                    $listener($context['event'], $parameters);
+                    continue;
                 }
 
                 $this->resolveCallable($listener, $parameters);
@@ -396,13 +411,13 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, LoggerAwar
      *
      * @param string|callable|object $listener
      *
-     * @return array
+     * @return array|callable
      */
     protected function parseClassCallable($listener)
     {
         if (is_object($listener)) {
             if (!method_exists($listener, '__invoke')) {
-                throw new EventsException(sprintf('The object has to implement %s %s method, else replace with callable or string with method avialable', '__invoke'));
+                throw new EventsException('The object has to implement %s __invoke method, else replace with callable or string with method avialable');
             }
 
             return [$listener, '__invoke'];
@@ -413,6 +428,8 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, LoggerAwar
         } elseif (strpos($listener, '@') !== false) {
             return explode('@', $listener, 2);
         }
+
+        return $listener;
     }
 
     /**
@@ -420,7 +437,9 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, LoggerAwar
      *
      * @param string|object $class
      *
+     * @param array $arguments
      * @return string
+     * @throws ReflectionException
      */
     private function createListenerInstance($class, $arguments = [])
     {
@@ -428,7 +447,7 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, LoggerAwar
             return !empty($arguments) ? get_class($arguments) : $class;
         }
 
-        $instance = (new \ReflectionClass($class));
+        $instance = (new ReflectionClass($class));
         if (!$instance->isInstantiable()) {
             throw new Exceptions\EventsException("Targeted [$class] is not instantiable");
         }
@@ -439,7 +458,7 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, LoggerAwar
                 : static::$container->get($class);
         }
 
-        return $instance instanceof \ReflectionClass ? $instance->newInstanceArgs($arguments) : $instance;
+        return $instance instanceof ReflectionClass ? $instance->newInstanceArgs($arguments) : $instance;
     }
 
     /**
@@ -486,6 +505,7 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, LoggerAwar
      * @param EventSubscriberInterface|string $class
      *
      * @return bool|Interfaces\EventSubscriberInterface
+     * @throws ReflectionException
      */
     private function listenerShouldSubscribe($class)
     {
@@ -515,19 +535,19 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, LoggerAwar
      *
      * @param EventBroadcastInterface $class
      *
-     * @return bool|\Closure
+     * @return bool|Closure
      */
     protected function createQueuedHandlerCallable(EventBroadcastInterface $class)
     {
-        return function () use ($class): bool {
-            if ($this->listenerWantsToBeQueued($class)) {
-                if (null !== $this->logger) {
-                    $this->logger->debug(sprintf('The "%s" broadcaster has been dispatched on request, no need to re-dispatch.', get_class($class)));
-                }
-
-                return $this->broadcastDone($class);
+        if ($this->listenerWantsToBeQueued($class)) {
+            if (null !== $this->logger) {
+                $this->logger->debug(sprintf('The "%s" broadcaster has been dispatched on request, no need to re-dispatch.', get_class($class)));
             }
-        };
+
+            return $this->broadcastDone($class);
+        }
+
+        return false;
     }
 
     /**
@@ -537,12 +557,12 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, LoggerAwar
      *
      * @return bool
      */
-    protected function listenerWantsToBeQueued(EventBroadcastInterface $class)
+    protected function listenerWantsToBeQueued(EventBroadcastInterface $class): bool
     {
         if (method_exists($class, 'broadcastOn')) {
-            $class->broadcastOn();
+            return $class->broadcastOn();
         }
 
-        return true;
+        return false;
     }
 }

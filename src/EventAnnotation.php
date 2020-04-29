@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection PhpUndefinedMethodInspection */
 
 declare(strict_types=1);
 
@@ -24,6 +24,8 @@ use BiuradPHP\Events\Interfaces\EventDispatcherInterface;
 use BiuradPHP\Events\Interfaces\EventSubscriberInterface;
 use BiuradPHP\Loader\AnnotationLocator;
 use BiuradPHP\Loader\Interfaces\AnnotationInterface;
+use ReflectionClass;
+use ReflectionMethod;
 
 /**
  * EventAnnotation loads listeners from a PHP class or its methods.
@@ -78,9 +80,15 @@ final class EventAnnotation implements AnnotationInterface
 
     /**
      * Load the annoatation for events.
+     *
+     * @param AnnotationLocator $annotation
      */
     public function register(AnnotationLocator $annotation): void
     {
+        /**
+         * @var  ReflectionClass $reflector
+         * @var  Annotation\Listener $classAnnotation
+         */
         foreach ($annotation->findClasses($this->eventAnnotationClass) as [$reflector, $classAnnotation]) {
             if ($reflector->implementsInterface(EventBroadcastInterface::class)) {
                 $this->events->addListener(
@@ -93,6 +101,10 @@ final class EventAnnotation implements AnnotationInterface
             }
         }
 
+        /**
+         * @var  ReflectionMethod $reflector
+         * @var  Annotation\Listener $methodAnnotation
+         */
         foreach ($annotation->findMethods($this->eventAnnotationClass) as [$method, $methodAnnotation]) {
             $this->events->addListener(
                 $methodAnnotation->getEvent(),

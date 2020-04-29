@@ -19,8 +19,9 @@ declare(strict_types=1);
 
 namespace BiuradPHP\Events\Interfaces;
 
+use BiuradPHP\Events\EventContext;
+use Closure;
 use Psr\EventDispatcher\ListenerProviderInterface;
-use Psr\EventDispatcher\EventDispatcherInterface as PsrEventDispatcherInterface;
 
 /**
  * The EventDispatcherInterface is the central point of Symfony's event listener system.
@@ -35,8 +36,9 @@ interface EventDispatcherInterface extends ListenerProviderInterface
     /**
      * Adds an event listener that listens on the specified events.
      *
-     * @param callable|\Closure|object|string $listener The listener
-     * @param int                      $priority The higher this value, the earlier an event
+     * @param string $eventName
+     * @param callable|Closure|object|string $listener The listener
+     * @param int $priority The higher this value, the earlier an event
      *   listener will be triggered in the chain (defaults to 1)
      */
     public function addListener(string $eventName, $listener, int $priority = 1);
@@ -56,6 +58,8 @@ interface EventDispatcherInterface extends ListenerProviderInterface
 
     /**
      * Removes an event listener from the specified events.
+     *
+     * @param string $eventName
      */
     public function removeListener(string $eventName);
 
@@ -69,12 +73,16 @@ interface EventDispatcherInterface extends ListenerProviderInterface
     /**
      * Gets the listeners of a specific event or all listeners sorted by descending priority.
      *
+     * @param string $eventName
+     *
      * @return array The event listeners for the specified event, or all event listeners by event name
      */
     public function getListeners(string $eventName);
 
     /**
      * Checks whether an event has any registered listeners.
+     *
+     * @param string|null $eventName
      *
      * @return bool true if the specified event has any listeners, false otherwise
      */
@@ -83,9 +91,9 @@ interface EventDispatcherInterface extends ListenerProviderInterface
     /**
      * Register an event listener with the dispatcher.
      *
-     * @param \Closure|callable|object|string $listener
+     * @param Closure|callable|object|string $listener
      *
-     * @return \Closure
+     * @return Closure
      */
     public function makeListener($listener);
 

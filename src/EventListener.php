@@ -19,6 +19,8 @@ declare(strict_types=1);
 
 namespace BiuradPHP\Events;
 
+use Closure;
+
 final class EventListener
 {
     private $event;
@@ -27,7 +29,7 @@ final class EventListener
 
     /**
      * @param string $eventName
-     * @param callable|\Closure|string $listener
+     * @param callable|Closure|string $listener
      * @param integer $priority
      */
     public function __construct(string $eventName, $listener, int $priority = 1)
@@ -47,6 +49,7 @@ final class EventListener
 
     /**
      * Set the event Name
+     * @param string $eventName
      */
     private function setEvent(string $eventName): void
     {
@@ -56,7 +59,7 @@ final class EventListener
     /**
      * Get the event's listener
      *
-     * @return object|\Closure
+     * @return object|Closure
      */
     public function getListener()
     {
@@ -66,7 +69,7 @@ final class EventListener
     /**
      * Set the event's listener
      *
-     * @param callable|\Closure|string $listener
+     * @param callable|Closure|string $listener
      */
     private function setListener($listener): void
     {
@@ -83,6 +86,7 @@ final class EventListener
 
     /**
      * Set the event's priority
+     * @param int $priority
      */
     private function setPriority(int $priority): void
     {

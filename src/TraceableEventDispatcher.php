@@ -19,6 +19,8 @@ declare(strict_types=1);
 
 namespace BiuradPHP\Events;
 
+use Exception;
+
 class TraceableEventDispatcher extends EventDispatcher
 {
     /**
@@ -31,6 +33,7 @@ class TraceableEventDispatcher extends EventDispatcher
 
     /**
      * {@inheritdoc}
+     * @throws Exception
      */
     public function dispatch($event, array $payload = [])
     {
@@ -38,7 +41,7 @@ class TraceableEventDispatcher extends EventDispatcher
 
         try {
             return parent::dispatch($event, $payload);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             if (null !== $this->logger) {
                 $this->logger->info('An exception was thrown while getting the uncalled listeners.', ['exception' => $e]);
             }
