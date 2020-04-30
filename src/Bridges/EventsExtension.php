@@ -19,10 +19,10 @@ declare(strict_types=1);
 
 namespace BiuradPHP\Events\Bridges;
 
+use Nette;
+use Nette\Schema\Expect;
 use BiuradPHP\Events\EventDispatcher;
 use BiuradPHP\Events\TraceableEventDispatcher;
-use Nette, BiuradPHP;
-use Nette\Schema\Expect;
 
 class EventsExtension extends Nette\DI\CompilerExtension
 {
