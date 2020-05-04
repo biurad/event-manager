@@ -22,6 +22,7 @@ namespace BiuradPHP\Events\Bridges;
 use Nette;
 use Nette\Schema\Expect;
 use BiuradPHP\Events\EventDispatcher;
+use BiuradPHP\Events\Interfaces\EventSubscriberInterface;
 use BiuradPHP\Events\TraceableEventDispatcher;
 
 class EventsExtension extends Nette\DI\CompilerExtension
@@ -44,6 +45,7 @@ class EventsExtension extends Nette\DI\CompilerExtension
     public function getConfigSchema(): Nette\Schema\Schema
     {
         return Nette\Schema\Expect::structure([
+            'autoload' => Nette\Schema\Expect::bool(true),
             'subscribers' => Nette\Schema\Expect::arrayOf(Expect::string()->assert('class_exists')),
         ])->castTo('array');
     }
@@ -64,5 +66,19 @@ class EventsExtension extends Nette\DI\CompilerExtension
         );
 
         $builder->addAlias('events', $this->prefix('dispatcher'));
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function beforeCompile()
+    {
+        $builder = $this->getContainerBuilder();
+		$dispatcher = $builder->getDefinition($this->prefix('dispatcher'));
+
+		$subscribers = $builder->findByType(EventSubscriberInterface::class);
+		foreach ($subscribers as $name => $subscriber) {
+			$dispatcher->addSetup('addSubscriber', [$subscriber]);
+		}
     }
 }
