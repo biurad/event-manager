@@ -30,9 +30,12 @@ use Psr\Log\LoggerAwareTrait;
 use Closure;
 use ReflectionClass;
 use ReflectionException;
+use Serializable;
 use SplPriorityQueue;
 
 use function is_string;
+use function serialize;
+use function unserialize;
 
 /**
  * The Event Dispatcher.
@@ -45,7 +48,7 @@ use function is_string;
  * @author    Divine Niiquaye Ibok <divineibok@gmail.com>
  * @license   BSD-3-Clause
  */
-class EventDispatcher implements Interfaces\EventDispatcherInterface, LoggerAwareInterface
+class EventDispatcher implements Interfaces\EventDispatcherInterface, Serializable, LoggerAwareInterface
 {
     use LoggerAwareTrait;
 
@@ -564,5 +567,36 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, LoggerAwar
         }
 
         return false;
+    }
+
+    /**
+     * @return array
+     */
+    public function __serialize(): array
+    {
+        return [
+            'listeners' => $this->listeners,
+        ];
+    }
+
+    /**
+     * @internal
+     */
+    final public function serialize(): string
+    {
+        return serialize($this->__serialize());
+    }
+
+    public function __unserialize(array $data): void
+    {
+        $this->listeners = $data['listeners'];
+    }
+
+    /**
+     * @internal
+     */
+    final public function unserialize($serialized)
+    {
+        $this->__unserialize(unserialize($serialized));
     }
 }
