@@ -19,20 +19,49 @@ declare(strict_types=1);
 
 namespace BiuradPHP\Events;
 
+use BiuradPHP\Support\BoundMethod;
 use Closure;
+use ReflectionClass;
 
-final class EventListener
+/**
+ * Event listener instance.
+ *
+ * Event listener definitions add the following members to what the
+ * EventDispatcher accepts:
+ *
+ * - event: the event name to attach to.
+ * - target: the targeted callback attach to.
+ * - priority: the priority at which to attach the listener, if not the default.
+ *
+ * @author Divine Niiquaye Ibok <divineibok@gmail.com>
+ */
+class EventListener
 {
+    /**
+     * Event name to which to attach.
+     *
+     * @var string
+     */
     private $event;
-    private $listener;
+
+    /**
+     * Event target to which to attach.
+     *
+     * @var string|callable|object
+     */
+    private $target;
+
+    /**
+     * @var null|int Priority at which to attach.
+     */
     private $priority;
 
     /**
      * @param string $eventName
-     * @param callable|Closure|string $listener
-     * @param integer $priority
+     * @param callable|object|string $listener
+     * @param int $priority
      */
-    public function __construct(string $eventName, $listener, int $priority = 1)
+    public function __construct(string $eventName, $listener, $priority = 1)
     {
         $this->setEvent($eventName);
         $this->setListener($listener);
@@ -59,25 +88,27 @@ final class EventListener
     /**
      * Get the event's listener
      *
-     * @return object|Closure
+     * @return callable|string|object
      */
     public function getListener()
     {
-        return $this->listener;
+        return $this->target;
     }
 
     /**
      * Set the event's listener
      *
-     * @param callable|Closure|string $listener
+     * @param callable|object|string $listener
      */
     private function setListener($listener): void
     {
-        $this->listener = $listener;
+        $this->target = $listener;
     }
 
     /**
      * Get the event's priority
+     *
+     * @return int
      */
     public function getPriority(): int
     {
@@ -86,10 +117,35 @@ final class EventListener
 
     /**
      * Set the event's priority
+     *
      * @param int $priority
      */
     private function setPriority(int $priority): void
     {
         $this->priority = $priority;
+    }
+
+    /**
+     * Use the listener as an invokable, allowing direct attachment to an EventDispatcher.
+     *
+     * @param string $eventName
+     * @param array $parameters
+     *
+     * @return mixed
+     */
+    public function __invoke(string $eventName, array $parameters)
+    {
+        if (is_object($listener = $this->target) && !$listener instanceof Closure) {
+            $listener = [$listener, 'invoke'];
+            if (!method_exists($listener, '__invoke')) {
+                return $listener;
+            }
+        }
+
+        if (is_string($listener) && class_exists($listener)) {
+            return (new ReflectionClass($listener))->newInstanceArgs($parameters ?: null);
+        }
+
+        return BoundMethod::call(null, $listener, $parameters);
     }
 }

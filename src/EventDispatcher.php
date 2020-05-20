@@ -20,22 +20,14 @@ declare(strict_types=1);
 namespace BiuradPHP\Events;
 
 use Psr\Container\ContainerInterface;
-use BiuradPHP\Events\Exceptions\EventsException;
-use BiuradPHP\DependencyInjection\Interfaces\FactoryInterface;
-use BiuradPHP\Events\Interfaces\EventBroadcastInterface;
 use BiuradPHP\Events\Interfaces\EventSubscriberInterface;
 use Psr\EventDispatcher\StoppableEventInterface;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
-use Closure;
 use ReflectionClass;
 use ReflectionException;
 use Serializable;
 use SplPriorityQueue;
-
-use function is_string;
-use function serialize;
-use function unserialize;
 
 /**
  * The Event Dispatcher.
@@ -53,10 +45,24 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, Serializab
     use LoggerAwareTrait;
 
     /** @var EventListener[] */
-    protected $listeners = [];
+    protected $listeners;
 
     /** @var ContainerInterface */
-    protected static $container;
+    protected $container;
+
+    /**
+     * Prototype to use when creating an event.
+     *
+     * @var EventListener|LazyEventListener
+     */
+    protected $eventPrototype;
+
+    public function __construct()
+    {
+        $this->eventPrototype = function ($eventName, $target, $priority) {
+            return new EventListener($eventName, $target, $priority);
+        };
+    }
 
     /**
      * Set the value of container.
@@ -67,7 +73,10 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, Serializab
     public function setContainer(ContainerInterface $container): EventDispatcher
     {
         // Just incase the container responds with a null value;
-        static::$container = $container;
+        $this->container = $container;
+        $this->eventPrototype = function ($eventName, $target, $priority) use ($container) {
+            return new LazyEventListener($eventName, $target, $priority, $container);
+        };
 
         return $this;
     }
@@ -80,7 +89,6 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, Serializab
     public function getListenersForEvent(object $event): iterable
     {
         $queue = new SplPriorityQueue();
-
         foreach ($this->listeners as $eventName => $listeners) {
             if (
                 is_object($event) && class_exists($eventName) &&
@@ -88,7 +96,7 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, Serializab
             ) {
                 /** @var EventListener $listener */
                 foreach ($listeners as $listener) {
-                    $queue->insert($listener->getListener(), $listener->getPriority());
+                    $queue->insert($listener, $listener->getPriority());
                 }
             }
         }
@@ -107,44 +115,25 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, Serializab
         }
 
         if (is_object($event) && $this->hasListeners(get_class($event))) {
-            $this->callListeners($this->getListenersForEvent($event), $event, $payload);
-
+            $this->callRecursiveListeners($this->getListenersForEvent($event), $event, $payload);
 
             return $event;
         }
 
-        // When the given "event" is actually an object we will assume it is an event
-        // object and use the class as the event name and this event itself as the
-        // payload to the handler, which makes object based events quite simple.
-        [$event, $payload] = $this->parseEventAndPayload($event, $payload);
-        $eventName = is_object($event) ? get_class($event) : $event;
+        try {
+            // When the given "event" is actually an object we will assume it is an event
+            // object and use the class as the event name and this event itself as the
+            // payload to the handler, which makes object based events quite simple.
+            $eventName = is_object($event) ? get_class($event) : $event;
 
-        if (null !== $this->logger) {
-            $this->logger->debug(sprintf('The "%s" event is dispatched. No listeners have been called.', $eventName));
+            $responses = $this->callListeners($eventName, $payload, func_get_args() > 2);
+        } finally {
+            if (null !== $this->logger) {
+                $this->logger->debug(sprintf('The "%s" event is dispatched. No listeners have been called.', $eventName));
+            }
         }
 
-        $responses = [];
-        foreach ($this->getListeners($eventName) as $listener) {
-            $response = $listener($eventName, $payload);
-
-            // If a response is returned from the listener and event halting is enabled
-            // we will just return this response, and not call the rest of the event
-            // listeners. Otherwise we will add the response on the response list.
-            if (func_num_args() > 2 && !is_null($response)) {
-                return $response;
-            }
-
-            // If a boolean false is returned from a listener, we will stop propagating
-            // the event to any further listeners down in the chain, else we keep on
-            // looping through the listeners and firing every one in our sequence.
-            if (is_bool($response) && $response !== true) {
-                break;
-            }
-
-            $responses[] = $response;
-        }
-
-        return func_num_args() > 2 ? $event : $responses;
+        return !is_iterable($responses) ? $responses : $event;
     }
 
     /**
@@ -165,13 +154,9 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, Serializab
     /**
      * {@inheritdoc}
      */
-    public function hasListeners(string $eventName = null)
+    public function hasListeners(string $eventName)
     {
-        if (null !== $eventName) {
-            return !empty($this->listeners[$eventName]);
-        }
-
-        return false;
+        return !empty($this->listeners[$eventName]);
     }
 
     /**
@@ -179,7 +164,7 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, Serializab
      */
     public function addListener(string $eventName, $listener, int $priority = 1)
     {
-        $this->listeners[$eventName][] = new EventListener($eventName, $this->makeListener($listener), $priority);
+        $this->listeners[$eventName][] = ($this->eventPrototype)($eventName, $listener, $priority);
     }
 
     /**
@@ -187,7 +172,7 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, Serializab
      */
     public function removeListener(string $eventName)
     {
-        if (empty($this->listeners[$eventName])) {
+        if (!$this->hasListeners($eventName)) {
             return;
         }
 
@@ -202,7 +187,7 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, Serializab
      * Get all of the listeners for a given event name.
      *
      * @param  string  $eventName
-     * @return Closure[]|object[]|array
+     * @return callble[]|object[]|array
      */
     public function getListeners(string $eventName)
     {
@@ -213,32 +198,15 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, Serializab
 
         $queue = new SplPriorityQueue();
         foreach ($listeners as &$listener) {
-            $queue->insert($listener->getListener(), $listener->getPriority());
+            $queue->insert($listener, $listener->getPriority());
         }
 
         return $queue;
     }
 
     /**
-     * Get all of the contexts for a given event name.
-     *
-     * @param  string  $eventName
-     * @return EventContext[]|array
-     */
-    public function getContexts(string $eventName): iterable
-    {
-        $listeners = $this->listeners[$eventName] ?? [];
-        $listeners = class_exists($eventName)
-            ? $this->addInterfaceListeners($eventName, $listeners)
-            : ($listeners);
-
-        foreach ($listeners as $listener) {
-            yield new EventContext($listener);
-        }
-    }
-
-    /**
      * {@inheritdoc}
+     *
      * @throws ReflectionException
      */
     public function addSubscriber($subscriber)
@@ -263,6 +231,7 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, Serializab
 
     /**
      * {@inheritdoc}
+     *
      * @throws ReflectionException
      */
     public function removeSubscriber($subscriber)
@@ -281,173 +250,90 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, Serializab
     }
 
     /**
-     * Register an event listener with the dispatcher.
-     *
-     * @param Closure|callable|object|string $listener
-     *
-     * @return Closure|object|mixed
-     */
-    public function makeListener($listener)
-    {
-        if (!$listener instanceof Closure && (is_object($listener) || $listener[0] instanceof EventSubscriberInterface)) {
-            return $this->createClassCallable($listener);
-        }
-
-        return function (/** @noinspection PhpUnusedParameterInspection */ $event, array $payload) use (&$listener) {
-            if (
-                (!$listener instanceof Closure  && is_object($listener)) ||
-                is_string($listener) && class_exists($listener)
-            ) {
-                $listener = $this->createClassCallable($listener);
-            }
-
-            return $this->resolveCallable($listener, $payload);
-        };
-    }
-
-    /**
-     * Resolve callables.
-     *
-     * @param Closure|callable|mixed $unresolved
-     * @param array         $arguments
-     *
-     * @return Closure|string|null
-     */
-    private function resolveCallable($unresolved, $arguments)
-    {
-        if (null === static::$container) {
-            return $unresolved(...array_values($arguments));
-        } elseif (self::$container instanceof FactoryInterface) {
-            return static::$container->callMethod($unresolved, $arguments);
-        } elseif (method_exists(self::$container, 'call')) {
-            return static::$container->call($unresolved, $arguments);
-        }
-
-        return $unresolved(...array_values($arguments));
-    }
-
-    /**
-     * Check if event should be broadcasted by condition.
-     *
-     * @param mixed $event
-     *
-     * @return bool
-     */
-    protected function broadcastDone($event)
-    {
-        return method_exists($event, 'broadcastDone') ? $event->broadcastDone() : true;
-    }
-
-    /**
      * Triggers the listeners of an event.
      *
      * This method can be overridden to add functionality that is executed
      * for each listener.
      *
      * @param callable[] $listeners The event listeners
-     * @param object|Closure|StoppableEventInterface $event The event object to pass to the event handlers/listeners\
+     * @param object|callable|StoppableEventInterface $event The event object to pass to the event handlers/listeners\
      * @param array $arguments
      *
      * @return void
      */
-    protected function callListeners(iterable $listeners, $event, array $arguments): void
+    protected function callRecursiveListeners(iterable $listeners, $event, array $arguments): void
     {
-        $stoppable = $event instanceof StoppableEventInterface;
-        $parameters = array_merge((null !== self::$container ? [$event] : [$event, $this]), $arguments);
+        $parameters = array_merge((null !== $this->container ? [$event] : [$event, $this]), $arguments);
 
-        /** @var callable|CLosure $listener */
+        /** @var EventListener $listener */
         foreach ($listeners as $listener) {
             $context = [
                 'event'     => get_class($event),
-                'listener'  => $listener instanceof Closure ? 'Closure' : get_class($listener[0]),
-                'method'    => $listener instanceof Closure ? 'Type' : $listener[1]
+                'listener'  => $listener->getEvent()
             ];
 
-            if ($stoppable && $event->isPropagationStopped()) {
+            if ($event instanceof StoppableEventInterface && $event->isPropagationStopped()) {
                 if (null !== $this->logger) {
-                    $this->logger->debug('Listener "[{listener}::{method}]" stopped propagation of the event "{event}".', $context);
+                    $this->logger->debug('Listener "[{listener}]" stopped propagation of the event "{event}".', $context);
                 }
                 break;
             }
 
             try {
-                if ($listener instanceof Closure) {
-                    $listener($context['event'], $parameters);
-                    continue;
-                }
-
-                $this->resolveCallable($listener, $parameters);
+                $listener($context['event'], $parameters);
             } finally {
                 if (null !== $this->logger) {
-                    $this->logger->debug('Notified event "{event}" to listener "[{listener}::{method}]".', $context);
+                    $this->logger->debug('Notified event "{event}" to listener "[{listener}]".', $context);
                 }
             }
         }
     }
 
     /**
-     * Create the class based event callable.
+     * Triggers the listeners of an event.
      *
-     * @param string $listener
-     *
-     * @return callable
+     * @param string $eventName
+     * @param array $payload
+     * @param boolean|null $halt
+     * 
+     * @return iterable
      */
-    protected function createClassCallable($listener)
+    protected function callListeners(string $eventName, array $payload, ?bool $halt): iterable
     {
-        [$class, $method] = $this->parseClassCallable($listener);
+        foreach ($this->getListeners($eventName) as $listener) {
+            $response = $listener($eventName, $payload);
 
-        if ((is_object($class) && mb_strpos(get_class($class), 'class@anonymous') !== false) || is_object($class)) {
-            $controller = $class;
-        } else {
-            $controller = null !== static::$container ? static::$container->get($class) : new $class();
-        }
-
-        if ($controller instanceof EventBroadcastInterface) {
-            return $this->createQueuedHandlerCallable($controller);
-        }
-
-        return [$controller, $method];
-    }
-
-    /**
-     * Parse the class@listener, class::method, object into class and method.
-     *
-     * @param string|callable|object $listener
-     *
-     * @return array|callable
-     */
-    protected function parseClassCallable($listener)
-    {
-        if (is_object($listener)) {
-            if (!method_exists($listener, '__invoke')) {
-                throw new EventsException('The object has to implement %s __invoke method, else replace with callable or string with method avialable');
+            // If a response is returned from the listener and event halting is enabled
+            // we will just return this response, and not call the rest of the event
+            // listeners. Otherwise we will add the response on the response list.
+            if (true === $halt && !is_null($response)) {
+                return $response;
             }
 
-            return [$listener, '__invoke'];
-        } elseif ((is_array($listener) && count($listener) == 2) || is_callable($listener)) {
-            return $listener;
-        } elseif (strpos($listener, '::') !== false) {
-            return explode('::', $listener, 2);
-        } elseif (strpos($listener, '@') !== false) {
-            return explode('@', $listener, 2);
-        }
+            // If a boolean false is returned from a listener, we will stop propagating
+            // the event to any further listeners down in the chain, else we keep on
+            // looping through the listeners and firing every one in our sequence.
+            if (is_bool($response) && $response !== true) {
+                break;
+            }
 
-        return $listener;
+            yield $response;
+        }
     }
 
     /**
      * Create a new instance for listener to run.
      *
      * @param string|object $class
-     *
      * @param array $arguments
+     *
      * @return string
      * @throws ReflectionException
      */
-    private function createListenerInstance($class, $arguments = [])
+    private function createListenerInstance($class, array $arguments = null)
     {
         if (is_object($class)) {
-            return !empty($arguments) ? get_class($arguments) : $class;
+            return $class;
         }
 
         $instance = (new ReflectionClass($class));
@@ -455,13 +341,7 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, Serializab
             throw new Exceptions\EventsException("Targeted [$class] is not instantiable");
         }
 
-        if (null !== static::$container) {
-            $instance = method_exists(self::$container, 'make')
-                ? static::$container->make($class, ...$arguments)
-                : static::$container->get($class);
-        }
-
-        return $instance instanceof ReflectionClass ? $instance->newInstanceArgs($arguments) : $instance;
+        return $instance->newInstanceArgs($arguments);
     }
 
     /**
@@ -515,55 +395,15 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, Serializab
         $arguments = [];
         if (is_string($class) && strpos($class, '@') !== false) {
             [$class, $arguments] = explode('@', $class);
-
-            if ((null !== self::$container && (self::$container->has($arguments) || class_exists($arguments)))) {
-                $arguments = self::$container->get($arguments);
+            if (null !== $this->container && $this->container->has($arguments)) {
+                $arguments = [$this->container->get($arguments)];
             }
 
-            $arguments = (is_string($arguments) && class_exists($arguments)) ? new $arguments() : $arguments;
+            $arguments = [(is_string($arguments) && class_exists($arguments)) ? new $arguments() : $arguments];
         }
 
-        $arguments = !is_array($arguments) ? [$arguments] : $arguments;
-        $class = $this->createListenerInstance($class, $arguments);
-
-        if ($class instanceof EventSubscriberInterface) {
+        if (($class = $this->createListenerInstance($class, $arguments)) instanceof EventSubscriberInterface) {
             return $class;
-        }
-
-        return false;
-    }
-
-    /**
-     * Create a callable for putting an event handler on the queue.
-     *
-     * @param EventBroadcastInterface $class
-     *
-     * @return bool|Closure
-     */
-    protected function createQueuedHandlerCallable(EventBroadcastInterface $class)
-    {
-        if ($this->listenerWantsToBeQueued($class)) {
-            if (null !== $this->logger) {
-                $this->logger->debug(sprintf('The "%s" broadcaster has been dispatched on request, no need to re-dispatch.', get_class($class)));
-            }
-
-            return $this->broadcastDone($class);
-        }
-
-        return false;
-    }
-
-    /**
-     * Determine if the event handler wants to be queued.
-     *
-     * @param EventBroadcastInterface $class
-     *
-     * @return bool
-     */
-    protected function listenerWantsToBeQueued(EventBroadcastInterface $class): bool
-    {
-        if (method_exists($class, 'broadcastOn')) {
-            return $class->broadcastOn();
         }
 
         return false;

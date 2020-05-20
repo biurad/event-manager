@@ -19,10 +19,9 @@ declare(strict_types=1);
 
 namespace BiuradPHP\Events;
 
-use BiuradPHP\Events\Interfaces\EventBroadcastInterface;
 use BiuradPHP\Events\Interfaces\EventDispatcherInterface;
 use BiuradPHP\Events\Interfaces\EventSubscriberInterface;
-use BiuradPHP\Loader\AnnotationLocator;
+use BiuradPHP\Loader\Annotations\AnnotationLoader;
 use BiuradPHP\Loader\Interfaces\AnnotationInterface;
 use ReflectionClass;
 use ReflectionMethod;
@@ -81,22 +80,13 @@ final class EventAnnotation implements AnnotationInterface
     /**
      * Load the annoatation for events.
      *
-     * @param AnnotationLocator $annotation
+     * @param AnnotationLoader $annotation
      */
-    public function register(AnnotationLocator $annotation): void
+    public function register(AnnotationLoader $annotation): void
     {
-        /**
-         * @var  ReflectionClass $reflector
-         * @var  Annotation\Listener $classAnnotation
-         */
-        foreach ($annotation->findClasses($this->eventAnnotationClass) as [$reflector, $classAnnotation]) {
-            if ($reflector->implementsInterface(EventBroadcastInterface::class)) {
-                $this->events->addListener(
-                    $classAnnotation->getEvent(),
-                    $reflector->getName(),
-                    $classAnnotation->getPriority()
-                );
-            } elseif ($reflector->implementsInterface(EventSubscriberInterface::class)) {
+        /** @var  ReflectionClass $reflector */
+        foreach ($annotation->findClasses($this->eventAnnotationClass) as [$reflector,]) {
+            if ($reflector->implementsInterface(EventSubscriberInterface::class)) {
                 $this->events->addSubscriber($reflector->getName());
             }
         }

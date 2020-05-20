@@ -19,8 +19,6 @@ declare(strict_types=1);
 
 namespace BiuradPHP\Events\Interfaces;
 
-use BiuradPHP\Events\EventContext;
-use Closure;
 use Psr\EventDispatcher\ListenerProviderInterface;
 
 /**
@@ -29,7 +27,7 @@ use Psr\EventDispatcher\ListenerProviderInterface;
  * manager.
  *
  * @author Bernhard Schussek <bschussek@gmail.com>
- * @author    Divine Niiquaye Ibok <divineibok@gmail.com>
+ * @author Divine Niiquaye Ibok <divineibok@gmail.com>
  */
 if (PHP_VERSION_ID >= 70200) {
     interface EventDispatcherInterface extends ListenerProviderInterface
@@ -38,7 +36,7 @@ if (PHP_VERSION_ID >= 70200) {
          * Adds an event listener that listens on the specified events.
          *
          * @param string $eventName
-         * @param callable|Closure|object|string $listener The listener
+         * @param callable|object|string $listener The listener
          * @param int $priority The higher this value, the earlier an event
          *   listener will be triggered in the chain (defaults to 1)
          */
@@ -83,28 +81,11 @@ if (PHP_VERSION_ID >= 70200) {
         /**
          * Checks whether an event has any registered listeners.
          *
-         * @param string|null $eventName
+         * @param string $eventName
          *
          * @return bool true if the specified event has any listeners, false otherwise
          */
-        public function hasListeners(string $eventName = null);
-
-        /**
-         * Register an event listener with the dispatcher.
-         *
-         * @param Closure|callable|object|string $listener
-         *
-         * @return Closure
-         */
-        public function makeListener($listener);
-
-        /**
-         * Get all of the contexts for a given event name.
-         *
-         * @param  string  $eventName
-         * @return EventContext[]|array
-         */
-        public function getContexts(string $eventName): iterable;
+        public function hasListeners(string $eventName);
 
         /**
          * Fire an event until the first non-null response is returned.
@@ -134,7 +115,7 @@ if (PHP_VERSION_ID >= 70200) {
          * Adds an event listener that listens on the specified events.
          *
          * @param string $eventName
-         * @param callable|Closure|object|string $listener The listener
+         * @param callable|object|string $listener The listener
          * @param int $priority The higher this value, the earlier an event
          *   listener will be triggered in the chain (defaults to 1)
          */
@@ -179,28 +160,11 @@ if (PHP_VERSION_ID >= 70200) {
         /**
          * Checks whether an event has any registered listeners.
          *
-         * @param string|null $eventName
+         * @param string $eventName
          *
          * @return bool true if the specified event has any listeners, false otherwise
          */
-        public function hasListeners(string $eventName = null);
-
-        /**
-         * Register an event listener with the dispatcher.
-         *
-         * @param Closure|callable|object|string $listener
-         *
-         * @return Closure
-         */
-        public function makeListener($listener);
-
-        /**
-         * Get all of the contexts for a given event name.
-         *
-         * @param  string  $eventName
-         * @return EventContext[]|array
-         */
-        public function getContexts(string $eventName): iterable;
+        public function hasListeners(string $eventName);
 
         /**
          * Fire an event until the first non-null response is returned.
