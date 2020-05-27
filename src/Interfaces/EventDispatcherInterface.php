@@ -19,6 +19,7 @@ declare(strict_types=1);
 
 namespace BiuradPHP\Events\Interfaces;
 
+use BiuradPHP\Events\EventListener;
 use Psr\EventDispatcher\ListenerProviderInterface;
 
 /**
@@ -76,7 +77,14 @@ if (PHP_VERSION_ID >= 70200) {
          *
          * @return array The event listeners for the specified event, or all event listeners by event name
          */
-        public function getListeners(string $eventName);
+        public function getListener(string $eventName): array;
+
+        /**
+         * Get all of the listeners.
+         *
+         * @return EventListener[]|array
+         */
+        public function getListeners(): array;
 
         /**
          * Checks whether an event has any registered listeners.
@@ -85,7 +93,7 @@ if (PHP_VERSION_ID >= 70200) {
          *
          * @return bool true if the specified event has any listeners, false otherwise
          */
-        public function hasListeners(string $eventName);
+        public function hasListeners(string $eventName): bool;
 
         /**
          * Fire an event until the first non-null response is returned.
@@ -155,7 +163,14 @@ if (PHP_VERSION_ID >= 70200) {
          *
          * @return array The event listeners for the specified event, or all event listeners by event name
          */
-        public function getListeners(string $eventName);
+        public function getListener(string $eventName): array;
+
+        /**
+         * Get all of the listeners.
+         *
+         * @return EventListener[]|array
+         */
+        public function getListeners(): array;
 
         /**
          * Checks whether an event has any registered listeners.
@@ -164,7 +179,7 @@ if (PHP_VERSION_ID >= 70200) {
          *
          * @return bool true if the specified event has any listeners, false otherwise
          */
-        public function hasListeners(string $eventName);
+        public function hasListeners(string $eventName): bool;
 
         /**
          * Fire an event until the first non-null response is returned.

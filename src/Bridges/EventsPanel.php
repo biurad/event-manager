@@ -1,4 +1,5 @@
 <?php
+/** @noinspection PhpUndefinedClassInspection */
 
 declare(strict_types=1);
 
@@ -22,6 +23,7 @@ namespace BiuradPHP\Events\Bridges;
 use BiuradPHP\Events\Interfaces\EventDispatcherInterface;
 use BiuradPHP\Events\TraceableEventDispatcher;
 use Nette, Tracy;
+use Throwable;
 
 
 /**
@@ -42,9 +44,11 @@ class EventsPanel implements Tracy\IBarPanel
 	}
 
 
-	/**
-	 * Renders tab.
-	 */
+    /**
+     * Renders tab.
+     *
+     * @throws Throwable
+     */
 	public function getTab(): ?string
 	{
 
@@ -54,9 +58,11 @@ class EventsPanel implements Tracy\IBarPanel
 	}
 
 
-	/**
-	 * Renders panel.
-	 */
+    /**
+     * Renders panel.
+     *
+     * @throws Throwable
+     */
 	public function getPanel(): string
 	{
 		return Nette\Utils\Helpers::capture(function () {

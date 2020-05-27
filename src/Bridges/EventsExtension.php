@@ -53,7 +53,7 @@ class EventsExtension extends Nette\DI\CompilerExtension
     /**
      * {@inheritDoc}
      */
-    public function loadConfiguration()
+    public function loadConfiguration(): void
     {
         $builder = $this->getContainerBuilder();
 
@@ -71,7 +71,7 @@ class EventsExtension extends Nette\DI\CompilerExtension
     /**
      * {@inheritdoc}
      */
-    public function beforeCompile()
+    public function beforeCompile(): void
     {
         $builder = $this->getContainerBuilder();
 		$dispatcher = $builder->getDefinition($this->prefix('dispatcher'));

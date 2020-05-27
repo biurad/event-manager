@@ -1,4 +1,6 @@
-<?php /** @noinspection PhpUndefinedMethodInspection */
+<?php
+/** @noinspection PhpUndefinedClassInspection */
+/** @noinspection PhpUndefinedMethodInspection */
 
 declare(strict_types=1);
 
@@ -20,7 +22,6 @@ declare(strict_types=1);
 namespace BiuradPHP\Events;
 
 use BiuradPHP\Events\Interfaces\EventDispatcherInterface;
-use BiuradPHP\Events\Interfaces\EventSubscriberInterface;
 use BiuradPHP\Loader\Annotations\AnnotationLoader;
 use BiuradPHP\Loader\Interfaces\AnnotationInterface;
 use ReflectionClass;
@@ -60,7 +61,7 @@ final class EventAnnotation implements AnnotationInterface
     /**
      * @var string<Annotation\Listener>
      */
-    private $eventAnnotationClass = 'BiuradPHP\\Events\\Annotation\\Listener';
+    private $eventAnnotationClass = Annotation\Listener::class;
 
     /**
      * @var EventDispatcherInterface
@@ -86,9 +87,7 @@ final class EventAnnotation implements AnnotationInterface
     {
         /** @var  ReflectionClass $reflector */
         foreach ($annotation->findClasses($this->eventAnnotationClass) as [$reflector,]) {
-            if ($reflector->implementsInterface(EventSubscriberInterface::class)) {
-                $this->events->addSubscriber($reflector->getName());
-            }
+            $this->events->addSubscriber($reflector->getName());
         }
 
         /**

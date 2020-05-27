@@ -1,4 +1,7 @@
-<?php /** @noinspection PhpUndefinedMethodInspection */
+<?php
+/** @noinspection StaticClosureCanBeUsedInspection */
+/** @noinspection PhpUndefinedClassInspection */
+/** @noinspection PhpUndefinedMethodInspection */
 
 declare(strict_types=1);
 
@@ -44,7 +47,7 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, Serializab
 {
     use LoggerAwareTrait;
 
-    /** @var EventListener[] */
+    /** @var EventListener[]|array */
     protected $listeners;
 
     /** @var ContainerInterface */
@@ -154,7 +157,7 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, Serializab
     /**
      * {@inheritdoc}
      */
-    public function hasListeners(string $eventName)
+    public function hasListeners(string $eventName): bool
     {
         return !empty($this->listeners[$eventName]);
     }
@@ -189,7 +192,7 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, Serializab
      * @param  string  $eventName
      * @return callble[]|object[]|array
      */
-    public function getListeners(string $eventName)
+    public function getListener(string $eventName): array
     {
         $listeners = $this->listeners[$eventName] ?? [];
         $listeners = class_exists($eventName)
@@ -202,6 +205,16 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, Serializab
         }
 
         return $queue;
+    }
+
+    /**
+     * Get all of the listeners.
+     *
+     * @return array
+     */
+    public function getListeners(): array
+    {
+        return $this->listeners;
     }
 
     /**
@@ -269,7 +282,7 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, Serializab
         foreach ($listeners as $listener) {
             $context = [
                 'event'     => get_class($event),
-                'listener'  => $listener->getEvent()
+                'listener'  => get_class($listener->getListener()[0]),
             ];
 
             if ($event instanceof StoppableEventInterface && $event->isPropagationStopped()) {
@@ -295,12 +308,12 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, Serializab
      * @param string $eventName
      * @param array $payload
      * @param boolean|null $halt
-     * 
+     *
      * @return iterable
      */
     protected function callListeners(string $eventName, array $payload, ?bool $halt): iterable
     {
-        foreach ($this->getListeners($eventName) as $listener) {
+        foreach ($this->getListener($eventName) as $listener) {
             $response = $listener($eventName, $payload);
 
             // If a response is returned from the listener and event halting is enabled
@@ -327,7 +340,7 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, Serializab
      * @param string|object $class
      * @param array $arguments
      *
-     * @return string
+     * @return string|mixed
      * @throws ReflectionException
      */
     private function createListenerInstance($class, array $arguments = null)
@@ -345,36 +358,18 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, Serializab
     }
 
     /**
-     * Parse the given event and payload and prepare them for dispatching.
-     *
-     * @param mixed $event
-     * @param mixed $payload
-     *
-     * @return array
-     */
-    private function parseEventAndPayload($event, $payload)
-    {
-        if (is_object($event)) {
-            [$payload, $event] = [[$event], $event];
-        }
-        $payload = $payload ?: [];
-
-        return [$event, is_array($payload) ? $payload : [$payload]];
-    }
-
-    /**
      * Add the listeners for the event's interfaces to the given array.
      *
      * @param  string  $eventName
      * @param  array  $listeners
      * @return array
      */
-    private function addInterfaceListeners($eventName, array $listeners = [])
+    private function addInterfaceListeners($eventName, array $listeners = []): array
     {
         foreach (class_implements($eventName) as $interface) {
             if (isset($this->listeners[$interface])) {
                 foreach ($this->listeners[$interface] as $names) {
-                    $listeners = array_merge($listeners, (array) $names);
+                    $listeners[] = $names;
                 }
             }
         }
@@ -416,6 +411,9 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, Serializab
     {
         return [
             'listeners' => $this->listeners,
+            'container' => $this->container,
+            'prototype' => $this->eventPrototype,
+            'logger' => $this->logger,
         ];
     }
 
@@ -430,13 +428,17 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, Serializab
     public function __unserialize(array $data): void
     {
         $this->listeners = $data['listeners'];
+        $this->container = $data['container'];
+        $this->eventPrototype = $data['prototype'];
+        $this->logger = $data['logger'];
     }
 
     /**
+     * @param mixed $serialized
      * @internal
      */
     final public function unserialize($serialized)
     {
-        $this->__unserialize(unserialize($serialized));
+        $this->__unserialize(unserialize($serialized, null));
     }
 }

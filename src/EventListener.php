@@ -22,6 +22,7 @@ namespace BiuradPHP\Events;
 use BiuradPHP\Support\BoundMethod;
 use Closure;
 use ReflectionClass;
+use ReflectionException;
 
 /**
  * Event listener instance.
@@ -132,6 +133,7 @@ class EventListener
      * @param array $parameters
      *
      * @return mixed
+     * @throws ReflectionException
      */
     public function __invoke(string $eventName, array $parameters)
     {
