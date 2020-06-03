@@ -57,13 +57,15 @@ class EventsExtension extends Nette\DI\CompilerExtension
     {
         $builder = $this->getContainerBuilder();
 
-        $builder->addDefinition($this->prefix('dispatcher'))
+        $events = $builder->addDefinition($this->prefix('dispatcher'))
             ->setFactory($this->debug ? TraceableEventDispatcher::class : EventDispatcher::class)
             ->addSetup('setContainer')
             ->addSetup('setLogger')
-            ->addSetup(
-            'foreach (? as $subscriber) { ?->addSubscriber($subscriber); }', [$this->config['subscribers'], '@self']
-        );
+        ;
+
+        foreach ($this->config['subscribers'] as $subscriber) {
+            $events->addSetup('addSubsciber', [$subscriber]);
+        }
 
         $builder->addAlias('events', $this->prefix('dispatcher'));
     }
