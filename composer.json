@@ -21,7 +21,7 @@
         }
     ],
     "require": {
-        "php": "^7.2",
+        "php": "^7.2.5",
         "psr/log": "^1.1",
         "biurad/biurad-helpers": "^0.1",
         "symfony/event-dispatcher-contracts": "^1.1|^2"
@@ -44,6 +44,6 @@
     },
     "minimum-stability": "dev",
     "suggest": {
-        "biurad/biurad-loader": "^For handling events listeners on annotations"
+        "biurad/doctrine-annotation-bridge": "^For handling events listeners on annotations"
     }
 }

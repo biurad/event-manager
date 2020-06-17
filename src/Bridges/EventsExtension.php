@@ -3,27 +3,25 @@
 declare(strict_types=1);
 
 /*
- * This code is under BSD 3-Clause "New" or "Revised" License.
+ * This file is part of BiuradPHP opensource projects.
  *
- * PHP version 7 and above required
- *
- * @category  EventManager
+ * PHP version 7.2 and above required
  *
  * @author    Divine Niiquaye Ibok <divineibok@gmail.com>
  * @copyright 2019 Biurad Group (https://biurad.com/)
  * @license   https://opensource.org/licenses/BSD-3-Clause License
  *
- * @link      https://www.biurad.com/projects/eventmanager
- * @since     Version 0.1
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
 
 namespace BiuradPHP\Events\Bridges;
 
-use Nette;
-use Nette\Schema\Expect;
 use BiuradPHP\Events\EventDispatcher;
 use BiuradPHP\Events\Interfaces\EventSubscriberInterface;
 use BiuradPHP\Events\TraceableEventDispatcher;
+use Nette;
+use Nette\Schema\Expect;
 
 class EventsExtension extends Nette\DI\CompilerExtension
 {
@@ -45,7 +43,7 @@ class EventsExtension extends Nette\DI\CompilerExtension
     public function getConfigSchema(): Nette\Schema\Schema
     {
         return Nette\Schema\Expect::structure([
-            'autoload' => Nette\Schema\Expect::bool(true),
+            'autoload'    => Nette\Schema\Expect::bool(true),
             'subscribers' => Nette\Schema\Expect::arrayOf(Expect::string()->assert('class_exists')),
         ])->castTo('array');
     }
@@ -75,12 +73,13 @@ class EventsExtension extends Nette\DI\CompilerExtension
      */
     public function beforeCompile(): void
     {
-        $builder = $this->getContainerBuilder();
-		$dispatcher = $builder->getDefinition($this->prefix('dispatcher'));
+        $builder    = $this->getContainerBuilder();
+        $dispatcher = $builder->getDefinition($this->prefix('dispatcher'));
 
-		$subscribers = $builder->findByType(EventSubscriberInterface::class);
-		foreach ($subscribers as $name => $subscriber) {
-			$dispatcher->addSetup('addSubscriber', [$subscriber]);
-		}
+        $subscribers = $builder->findByType(EventSubscriberInterface::class);
+
+        foreach ($subscribers as $name => $subscriber) {
+            $dispatcher->addSetup('addSubscriber', [$subscriber]);
+        }
     }
 }

@@ -3,18 +3,16 @@
 declare(strict_types=1);
 
 /*
- * This code is under BSD 3-Clause "New" or "Revised" License.
+ * This file is part of BiuradPHP opensource projects.
  *
- * PHP version 7 and above required
- *
- * @category  EventManager
+ * PHP version 7.2 and above required
  *
  * @author    Divine Niiquaye Ibok <divineibok@gmail.com>
  * @copyright 2019 Biurad Group (https://biurad.com/)
  * @license   https://opensource.org/licenses/BSD-3-Clause License
  *
- * @link      https://www.biurad.com/projects/eventmanager
- * @since     Version 0.1
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
 
 namespace BiuradPHP\Events;
@@ -35,6 +33,7 @@ use Symfony\Contracts\EventDispatcher\Event;
 class GenericEvent extends Event implements ArrayAccess, IteratorAggregate
 {
     protected $subject;
+
     protected $arguments;
 
     /**
@@ -45,7 +44,7 @@ class GenericEvent extends Event implements ArrayAccess, IteratorAggregate
      */
     public function __construct($subject = null, array $arguments = [])
     {
-        $this->subject = $subject;
+        $this->subject   = $subject;
         $this->arguments = $arguments;
     }
 
@@ -72,14 +71,14 @@ class GenericEvent extends Event implements ArrayAccess, IteratorAggregate
             return $this->arguments[$key];
         }
 
-        throw new InvalidArgumentException(sprintf('Argument "%s" not found.', $key));
+        throw new InvalidArgumentException(\sprintf('Argument "%s" not found.', $key));
     }
 
     /**
      * Add argument to event.
      *
      * @param string $key
-     * @param mixed $value Value
+     * @param mixed  $value Value
      *
      * @return $this
      */
@@ -117,12 +116,12 @@ class GenericEvent extends Event implements ArrayAccess, IteratorAggregate
     /**
      * Has argument.
      *
-     * @param string $key
+     * @param  string $key
      * @return bool
      */
     public function hasArgument(string $key): bool
     {
-        return array_key_exists($key, $this->arguments);
+        return \array_key_exists($key, $this->arguments);
     }
 
     /**
@@ -130,9 +129,8 @@ class GenericEvent extends Event implements ArrayAccess, IteratorAggregate
      *
      * @param string $key Array key
      *
-     * @return mixed
-     *
      * @throws InvalidArgumentException if key does not exist in $this->args
+     * @return mixed
      */
     public function offsetGet($key)
     {
@@ -145,7 +143,7 @@ class GenericEvent extends Event implements ArrayAccess, IteratorAggregate
      * @param string $key   Array key to set
      * @param mixed  $value Value
      */
-    public function offsetSet($key, $value)
+    public function offsetSet($key, $value): void
     {
         $this->setArgument($key, $value);
     }
@@ -155,7 +153,7 @@ class GenericEvent extends Event implements ArrayAccess, IteratorAggregate
      *
      * @param string $key Array key
      */
-    public function offsetUnset($key)
+    public function offsetUnset($key): void
     {
         if ($this->hasArgument($key)) {
             unset($this->arguments[$key]);

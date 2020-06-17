@@ -3,18 +3,16 @@
 declare(strict_types=1);
 
 /*
- * This code is under BSD 3-Clause "New" or "Revised" License.
+ * This file is part of BiuradPHP opensource projects.
  *
- * PHP version 7 and above required
- *
- * @category  EventManager
+ * PHP version 7.2 and above required
  *
  * @author    Divine Niiquaye Ibok <divineibok@gmail.com>
  * @copyright 2019 Biurad Group (https://biurad.com/)
  * @license   https://opensource.org/licenses/BSD-3-Clause License
  *
- * @link      https://www.biurad.com/projects/eventmanager
- * @since     Version 0.1
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
 
 namespace BiuradPHP\Events;
@@ -50,10 +48,10 @@ class LazyEventListener extends EventListener
     private $container;
 
     /**
-     * @param string $eventName
+     * @param string                 $eventName
      * @param callable|object|string $listener
-     * @param int $priority
-     * @param ContainerInterface $container
+     * @param int                    $priority
+     * @param ContainerInterface     $container
      */
     public function __construct(string $eventName, $listener, int $priority, ContainerInterface $container)
     {
@@ -66,23 +64,24 @@ class LazyEventListener extends EventListener
      */
     public function __invoke(string $eventName, array $parameters)
     {
-        if (is_object($listener = $this->getListener()) && !$listener instanceof Closure) {
+        if (\is_object($listener = $this->getListener()) && !$listener instanceof Closure) {
             $listener = [$listener, 'invoke'];
-            if (!method_exists($listener, '__invoke')) {
+
+            if (!\method_exists($listener, '__invoke')) {
                 return $listener;
             }
         }
 
         if ($this->container->has($eventName)) {
             throw new EventsException(
-                sprintf('Lazy listener name "%s" cannot exist in in dependency injection container', $eventName)
+                \sprintf('Lazy listener name "%s" cannot exist in in dependency injection container', $eventName)
             );
         }
 
         // Return the listener found in any type of container.
-        if (is_string($listener) && $this->container->has($listener)) {
+        if (\is_string($listener) && $this->container->has($listener)) {
             // For Laminas Container, we at ease
-            if (method_exists($this->container, 'build')) {
+            if (\method_exists($this->container, 'build')) {
                 return $this->container->build($listener, $parameters ?: null);
             }
 
@@ -90,10 +89,7 @@ class LazyEventListener extends EventListener
         }
 
         // For Nette Container, we at ease...
-        if (
-            $this->container instanceof Container &&
-            is_string($listener) && class_exists($listener)
-        ) {
+        if ($this->container instanceof Container && \is_string($listener) && \class_exists($listener)) {
             return $this->container->createInstance($listener, $parameters);
         }
 

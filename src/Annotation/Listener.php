@@ -3,18 +3,16 @@
 declare(strict_types=1);
 
 /*
- * This code is under BSD 3-Clause "New" or "Revised" License.
+ * This file is part of BiuradPHP opensource projects.
  *
- * PHP version 7 and above required
- *
- * @category  EventManager
+ * PHP version 7.2 and above required
  *
  * @author    Divine Niiquaye Ibok <divineibok@gmail.com>
  * @copyright 2019 Biurad Group (https://biurad.com/)
  * @license   https://opensource.org/licenses/BSD-3-Clause License
  *
- * @link      https://www.biurad.com/projects/eventmanager
- * @since     Version 0.1
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
 
 namespace BiuradPHP\Events\Annotation;
@@ -33,7 +31,7 @@ class Listener
     /** @var int */
     private $priority = 1;
 
-    /** @var callable|Closure|string|null */
+    /** @var null|callable|Closure|string */
     private $event;
 
     public function __construct($data = null)
@@ -44,8 +42,10 @@ class Listener
         }
 
         foreach (!empty($data) ? $data : [] as $key => $listener) {
-            if (! property_exists($this, $key)) {
-                throw new BadMethodCallException(sprintf('Unknown property "%s" on annotation "%s".', $key, get_class($this)));
+            if (!\property_exists($this, $key)) {
+                throw new BadMethodCallException(
+                    \sprintf('Unknown property "%s" on annotation "%s".', $key, \get_class($this))
+                );
             }
 
             $this->$key = $listener;
@@ -63,7 +63,7 @@ class Listener
     /**
      * Get the event listener
      *
-     * @return callable|Closure|string|null
+     * @return null|callable|Closure|string
      */
     public function getEvent()
     {
