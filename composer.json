@@ -27,7 +27,7 @@
         "symfony/event-dispatcher-contracts": "^1.1|^2"
     },
     "require-dev": {
-        "phpunit/phpunit": "^8.4"
+        "phpunit/phpunit": "8.5.7"
     },
     "autoload": {
         "psr-4": {
