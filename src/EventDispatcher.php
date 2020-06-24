@@ -18,6 +18,7 @@ declare(strict_types=1);
 namespace BiuradPHP\Events;
 
 use BiuradPHP\Events\Interfaces\EventSubscriberInterface;
+use BiuradPHP\Support\BoundMethod;
 use Psr\Container\ContainerInterface;
 use Psr\EventDispatcher\StoppableEventInterface;
 use Psr\Log\LoggerAwareInterface;
@@ -399,6 +400,14 @@ class EventDispatcher implements Interfaces\EventDispatcherInterface, Serializab
 
         if (!$instance->isInstantiable()) {
             throw new Exceptions\EventsException("Targeted [$class] is not instantiable");
+        }
+
+        if ($this->container instanceof ContainerInterface && null !== $contructor = $instance->getConstructor()) {
+            $contructor = BoundMethod::addDependencyForCallParameter($this->container, $contructor, $arguments ?: []);
+
+            $arguments = \array_filter($contructor, function ($parameter) {
+                return BoundMethod::NOT_NULL !== $parameter;
+            });
         }
 
         return $instance->newInstanceArgs($arguments);

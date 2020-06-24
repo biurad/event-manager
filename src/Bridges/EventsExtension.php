@@ -21,6 +21,8 @@ use BiuradPHP\Events\EventDispatcher;
 use BiuradPHP\Events\Interfaces\EventSubscriberInterface;
 use BiuradPHP\Events\TraceableEventDispatcher;
 use Nette;
+use Nette\DI\Definitions\Reference;
+use Nette\DI\Definitions\Statement;
 use Nette\Schema\Expect;
 
 class EventsExtension extends Nette\DI\CompilerExtension
@@ -62,7 +64,11 @@ class EventsExtension extends Nette\DI\CompilerExtension
         ;
 
         foreach ($this->config['subscribers'] as $subscriber) {
-            $events->addSetup('addSubsciber', [$subscriber]);
+            if (\is_string($subscriber) && $builder->hasDefinition($subscriber)) {
+                $subscriber = new Reference($subscriber);
+            }
+
+            $events->addSetup('addSubscriber', [\is_string($subscriber) ? new Statement($subscriber) : $subscriber]);
         }
 
         $builder->addAlias('events', $this->prefix('dispatcher'));
@@ -79,7 +85,10 @@ class EventsExtension extends Nette\DI\CompilerExtension
         $subscribers = $builder->findByType(EventSubscriberInterface::class);
 
         foreach ($subscribers as $name => $subscriber) {
-            $dispatcher->addSetup('addSubscriber', [$subscriber]);
+            $subscriberDefinition = $builder->getDefinition($name);
+            $builder->removeDefinition($name);
+
+            $dispatcher->addSetup('addSubscriber', [$subscriberDefinition->getFactory()]);
         }
     }
 }
