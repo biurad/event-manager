@@ -19,6 +19,7 @@ namespace BiuradPHP\Events;
 
 use Exception;
 use Psr\EventDispatcher\StoppableEventInterface;
+use Psr\Log\LoggerInterface;
 use SplObjectStorage;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -157,18 +158,16 @@ class TraceableEventDispatcher implements Interfaces\EventDispatcherInterface
             );
         }
 
+        $timerStart = \microtime(true);
         $this->preProcess($eventName);
 
         try {
-            $timerStart = \microtime(true);
-
-            try {
-                $this->dispatcher->dispatch($event, $eventName);
-            } finally {
-                $this->setEventsLog($eventName, $timerStart);
-            }
+            $this->dispatcher->dispatch($event, $eventName);
         } finally {
             $this->postProcess($eventName);
+
+            // Enable Profiling
+            $this->setEventsLog($eventName, $timerStart);
         }
 
         return $event;
@@ -186,9 +185,7 @@ class TraceableEventDispatcher implements Interfaces\EventDispatcherInterface
         $called = [];
 
         foreach ($this->callStack as $listener) {
-            [$eventName] = $this->callStack->getInfo();
-
-            $called[] = $listener->getInfo($eventName);
+            $called[] = $listener->getInfo(\current($this->callStack->getInfo()));
         }
 
         return $called;
@@ -227,7 +224,7 @@ class TraceableEventDispatcher implements Interfaces\EventDispatcherInterface
             foreach ($listeners as $listener) {
                 if (!\in_array($listener, $calledListeners, true)) {
                     if (!$listener instanceof WrappedListener) {
-                        $listener = new WrappedListener($listener, $this);
+                        $listener = new WrappedListener($listener, null, $this);
                     }
                     $notCalled[] = $listener->getInfo($eventName);
                 }
@@ -290,6 +287,7 @@ class TraceableEventDispatcher implements Interfaces\EventDispatcherInterface
             $priority                             = $this->getListenerPriority($eventName, $listener);
             $wrappedListener                      = new WrappedListener(
                 $listener instanceof WrappedListener ? $listener->getWrappedListener() : $listener,
+                null,
                 $this
             );
             $this->wrappedListeners[$eventName][] = $wrappedListener;

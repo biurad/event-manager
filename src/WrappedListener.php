@@ -20,7 +20,9 @@ namespace BiuradPHP\Events;
 use BiuradPHP\Support\BoundMethod;
 use Closure;
 use Psr\EventDispatcher\StoppableEventInterface;
+use ReflectionFunction;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use TypeError;
 
 /**
  * @author Fabien Potencier <fabien@symfony.com>
@@ -40,9 +42,11 @@ final class WrappedListener
 
     private $duration;
 
+    private $pretty;
+
     private $priority;
 
-    public function __construct($listener, EventDispatcherInterface $dispatcher = null)
+    public function __construct($listener, ?string $name, EventDispatcherInterface $dispatcher = null)
     {
         $this->listener           = $listener;
         $this->optimizedListener  = $listener instanceof Closure
@@ -52,6 +56,31 @@ final class WrappedListener
         $this->dispatcher         = $dispatcher;
         $this->called             = false;
         $this->stoppedPropagation = false;
+
+        if (\is_array($listener)) {
+            $this->name   = \is_object($listener[0]) ? get_debug_type($listener[0]) : $listener[0];
+            $this->pretty = $this->name . '::' . $listener[1];
+        } elseif ($listener instanceof Closure) {
+            $r = new ReflectionFunction($listener);
+
+            if (false !== \strpos($r->name, '{closure}')) {
+                $this->pretty = $this->name = 'closure';
+            } elseif ($class = $r->getClosureScopeClass()) {
+                $this->name   = $class->name;
+                $this->pretty = $this->name . '::' . $r->name;
+            } else {
+                $this->pretty = $this->name = $r->name;
+            }
+        } elseif (\is_string($listener)) {
+            $this->pretty = $this->name = $listener;
+        } else {
+            $this->name   = get_debug_type($listener);
+            $this->pretty = $this->name . '::__invoke';
+        }
+
+        if (null !== $name) {
+            $this->name = $name;
+        }
     }
 
     public function __invoke(object $event, string $eventName, EventDispatcherInterface $dispatcher): void
@@ -62,14 +91,18 @@ final class WrappedListener
         $this->priority = $dispatcher->getListenerPriority($eventName, $this->listener);
         $timeStart      = \microtime(true);
 
-        if ($this->dispatcher instanceof LazyEventDispatcher) {
+        try {
+            ($this->optimizedListener ?? $this->listener)($event, $eventName, $dispatcher);
+        } catch (TypeError $e) {
+            if (!$this->dispatcher instanceof TraceableEventDispatcher) {
+                throw $e;
+            }
+
             BoundMethod::call(
                 $this->dispatcher->getContainer(),
                 ($this->optimizedListener ?? $this->listener),
                 [$event, $eventName, $dispatcher]
             );
-        } else {
-            ($this->optimizedListener ?? $this->listener)($event, $eventName, $dispatcher);
         }
 
         $this->duration = \number_format((\microtime(true) - $timeStart) * 1000, 2) . 'ms';
@@ -113,6 +146,7 @@ final class WrappedListener
             'event'      => $eventName,
             'priority'   => $priority,
             'duration'   => $this->duration,
+            'pretty'     => $this->pretty,
         ];
     }
 }

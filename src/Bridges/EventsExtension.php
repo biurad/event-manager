@@ -24,6 +24,7 @@ use Nette;
 use Nette\DI\Definitions\Reference;
 use Nette\DI\Definitions\Statement;
 use Nette\Schema\Expect;
+use Psr\Log\LoggerInterface;
 
 class EventsExtension extends Nette\DI\CompilerExtension
 {
@@ -58,8 +59,10 @@ class EventsExtension extends Nette\DI\CompilerExtension
         $builder = $this->getContainerBuilder();
         $events  = new Statement(LazyEventDispatcher::class);
 
+        $logger = $builder->getByType(LoggerInterface::class) ? new Reference(LoggerInterface::class) : null;
+
         $events = $builder->addDefinition($this->prefix('dispatcher'))
-            ->setFactory($this->debug ? new Statement(TraceableEventDispatcher::class, [$events]) : $events);
+            ->setFactory($this->debug ? new Statement(TraceableEventDispatcher::class, [$events, $logger]) : $events);
 
         foreach ($this->config['subscribers'] as $subscriber) {
             if (\is_string($subscriber) && $builder->hasDefinition($subscriber)) {

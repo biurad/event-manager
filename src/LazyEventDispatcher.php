@@ -59,8 +59,12 @@ class LazyEventDispatcher extends EventDispatcher
             if ($stoppable && $event->isPropagationStopped()) {
                 break;
             }
-            
-            BoundMethod::call($this->container, $listener, [$event, $eventName, $this]);
+
+            if ($listener instanceof WrappedListener) {
+                $listener($event, $eventName, $this);
+            } else {
+                BoundMethod::call($this->container, $listener, [$event, $eventName, $this]);
+            }
         }
     }
 }
