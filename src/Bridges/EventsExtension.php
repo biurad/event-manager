@@ -59,10 +59,7 @@ class EventsExtension extends Nette\DI\CompilerExtension
         $events  = new Statement(LazyEventDispatcher::class);
 
         $events = $builder->addDefinition($this->prefix('dispatcher'))
-            ->setFactory($this->debug ? new Statement(TraceableEventDispatcher::class, [$events]) : $events)
-            ->addSetup('setContainer')
-            ->addSetup('setLogger')
-        ;
+            ->setFactory($this->debug ? new Statement(TraceableEventDispatcher::class, [$events]) : $events);
 
         foreach ($this->config['subscribers'] as $subscriber) {
             if (\is_string($subscriber) && $builder->hasDefinition($subscriber)) {
