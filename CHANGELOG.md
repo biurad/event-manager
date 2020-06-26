@@ -3,7 +3,9 @@
 All notable changes to `biurad/biurad-events-bus` will be documented in this file.
 
 ## 0.1.7 - 2020-06-17
+
 - Improved code complexity and performance issues using cs fixtures
+- Replaced how events are handled with symfony/event-dispatcher
 - Updated php files header doc
 - Added phpunit tests
 

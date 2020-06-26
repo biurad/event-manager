@@ -15,8 +15,9 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace BiuradPHP\Events;
+namespace BiuradPHP\Events\Bridges;
 
+use BiuradPHP\Events\Annotation;
 use BiuradPHP\Events\Interfaces\EventDispatcherInterface;
 use BiuradPHP\Annotation\AnnotationLoader;
 use BiuradPHP\Annotation\Interfaces\AnnotationInterface;

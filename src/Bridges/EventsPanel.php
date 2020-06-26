@@ -58,7 +58,7 @@ class EventsPanel implements Tracy\IBarPanel
     public function getPanel(): string
     {
         return Nette\Utils\Helpers::capture(function (): void {
-            $events = $this->events->getPerformanceLogs();
+            $events = $this->events->getEventsLogs();
 
             require __DIR__ . '/templates/EventPanel.panel.phtml';
         });

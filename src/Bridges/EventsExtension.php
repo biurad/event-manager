@@ -17,8 +17,8 @@ declare(strict_types=1);
 
 namespace BiuradPHP\Events\Bridges;
 
-use BiuradPHP\Events\EventDispatcher;
 use BiuradPHP\Events\Interfaces\EventSubscriberInterface;
+use BiuradPHP\Events\LazyEventDispatcher;
 use BiuradPHP\Events\TraceableEventDispatcher;
 use Nette;
 use Nette\DI\Definitions\Reference;
@@ -56,9 +56,10 @@ class EventsExtension extends Nette\DI\CompilerExtension
     public function loadConfiguration(): void
     {
         $builder = $this->getContainerBuilder();
+        $events  = new Statement(LazyEventDispatcher::class);
 
         $events = $builder->addDefinition($this->prefix('dispatcher'))
-            ->setFactory($this->debug ? TraceableEventDispatcher::class : EventDispatcher::class)
+            ->setFactory($this->debug ? new Statement(TraceableEventDispatcher::class, [$events]) : $events)
             ->addSetup('setContainer')
             ->addSetup('setLogger')
         ;
