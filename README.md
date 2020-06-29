@@ -20,7 +20,7 @@ Next, let's take a look at the listener for our example event. Event listeners r
 
 Sometimes, you may wish to stop the propagation of an event to other listeners. You may do so by returning `false` from your listener's method.
 
-To dispatch an event, you may pass an instance of the event to the  `addListener` method. The dispatcher will dispatch the event to all of its registered listeners. Since the `EventDispatcher` is globally available, you may call it from anywhere in your application.
+To dispatch an event, you may pass an instance of the event to the `addListener` method. The dispatcher will dispatch the event to all of its registered listeners. Since the `EventDispatcher` is globally available, you may call it from anywhere in your application.
 
 Event subscribers are classes that may subscribe to multiple events from within the class itself, allowing you to define several event handlers within a single class. Subscribers should define a static `getSubscribedEvents` method, which will be passed an event dispatcher instance. You may call the `listen` method on the given dispatcher to register event listeners.
 
@@ -53,7 +53,7 @@ You're free to use this package, but if it makes it to your production environme
 
 Post Here: [Project Patreons - https://patreons.biurad.com](https://patreons.biurad.com)
 
-We publish all received request's on our website;
+We publish all received request's on our website.
 
 ## Credits
 
