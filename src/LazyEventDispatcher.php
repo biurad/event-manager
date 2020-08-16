@@ -17,9 +17,11 @@ declare(strict_types=1);
 
 namespace BiuradPHP\Events;
 
-use BiuradPHP\Support\BoundMethod;
-use Psr\Container\ContainerInterface;
+use DivineNii\Invoker\Interfaces\InvokerInterface;
+use DivineNii\Invoker\Invoker;
 use Psr\EventDispatcher\StoppableEventInterface;
+use Symfony\Component\EventDispatcher\EventDispatcher;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 /**
  * {@inheritdoc}
@@ -28,24 +30,23 @@ use Psr\EventDispatcher\StoppableEventInterface;
  */
 class LazyEventDispatcher extends EventDispatcher
 {
-    /** @var ContainerInterface */
-    private $container;
+    /** @var InvokerInterface */
+    private $resolver;
 
     /**
      * @param Container $container
      */
-    public function __construct(ContainerInterface $container)
+    public function __construct(InvokerInterface $invoker = null)
     {
-        $this->container = $container;
-        parent::__construct();
+        $this->resolver = $invoker ?? new Invoker();
     }
 
     /**
-     * @return ContainerInterface
+     * @return InvokerInterface
      */
-    public function getContainer(): ContainerInterface
+    public function getResolver(): InvokerInterface
     {
-        return $this->container;
+        return $this->resolver;
     }
 
     /**
@@ -62,9 +63,14 @@ class LazyEventDispatcher extends EventDispatcher
 
             if ($listener instanceof WrappedListener) {
                 $listener($event, $eventName, $this);
-            } else {
-                BoundMethod::call($this->container, $listener, [$event, $eventName, $this]);
+
+                continue;
             }
+
+            $this->resolver->call(
+                $listener,
+                [$event, $eventName, EventDispatcherInterface::class => $this]
+            );
         }
     }
 }

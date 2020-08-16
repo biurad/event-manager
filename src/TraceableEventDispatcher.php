@@ -24,7 +24,7 @@ use SplObjectStorage;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
-class TraceableEventDispatcher implements Interfaces\EventDispatcherInterface
+class TraceableEventDispatcher implements EventDispatcherInterface
 {
     protected $logger;
 
@@ -38,10 +38,10 @@ class TraceableEventDispatcher implements Interfaces\EventDispatcherInterface
     private $callStack;
 
     /** @var array */
-    private $wrappedListeners;
+    private $wrappedListeners = [];
 
     /** @var array */
-    private $orphanedEvents;
+    private $orphanedEvents = [];
 
     public function __construct(EventDispatcherInterface $dispatcher, LoggerInterface $logger = null)
     {
@@ -242,13 +242,13 @@ class TraceableEventDispatcher implements Interfaces\EventDispatcherInterface
             return [];
         }
 
-        return \array_merge(...\array_values($this->orphanedEvents));
+        return \array_values($this->orphanedEvents);
     }
 
     public function reset(): void
     {
-        $this->callStack          = null;
-        $this->orphanedEvents     = [];
+        $this->callStack      = null;
+        $this->orphanedEvents = [];
     }
 
     /**
@@ -306,6 +306,7 @@ class TraceableEventDispatcher implements Interfaces\EventDispatcherInterface
             if (!$listener instanceof WrappedListener) { // #12845: a new listener was added during dispatch.
                 continue;
             }
+
             // Unwrap listener
             $priority = $this->getListenerPriority($eventName, $listener);
             $this->dispatcher->removeListener($eventName, $listener);
