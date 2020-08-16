@@ -15,11 +15,11 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace BiuradPHP\Events\Bridges;
+namespace BiuradPHP\Events\Bridges\Nette;
 
-use BiuradPHP\Events\Interfaces\EventDispatcherInterface;
 use BiuradPHP\Events\TraceableEventDispatcher;
 use Nette;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Throwable;
 use Tracy;
 

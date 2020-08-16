@@ -15,9 +15,8 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace BiuradPHP\Events\Bridges;
+namespace BiuradPHP\Events\Bridges\Nette;
 
-use BiuradPHP\Events\Interfaces\EventSubscriberInterface;
 use BiuradPHP\Events\LazyEventDispatcher;
 use BiuradPHP\Events\TraceableEventDispatcher;
 use Nette;
@@ -25,6 +24,7 @@ use Nette\DI\Definitions\Reference;
 use Nette\DI\Definitions\Statement;
 use Nette\Schema\Expect;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 class EventsExtension extends Nette\DI\CompilerExtension
 {
