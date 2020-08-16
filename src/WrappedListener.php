@@ -17,11 +17,11 @@ declare(strict_types=1);
 
 namespace BiuradPHP\Events;
 
+use ArgumentCountError;
 use Closure;
 use Psr\EventDispatcher\StoppableEventInterface;
 use ReflectionFunction;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
-use TypeError;
 
 /**
  * @author Fabien Potencier <fabien@symfony.com>
@@ -32,8 +32,6 @@ final class WrappedListener
     private $listener;
 
     private $name;
-
-    private $optimizedListener;
 
     private $called;
 
@@ -59,13 +57,11 @@ final class WrappedListener
         }
 
         $this->listener           = $listener;
-        $this->optimizedListener  = $listener instanceof Closure ? $listener : null;
-
         $this->dispatcher         = $dispatcher;
         $this->called             = false;
         $this->stoppedPropagation = false;
 
-        $this->trackEventListener($listener);
+        $this->trackEventListener($this->listener);
 
         if (null !== $name) {
             $this->name = $name;
@@ -81,19 +77,14 @@ final class WrappedListener
         $timeStart      = \microtime(true);
 
         try {
-            ($this->optimizedListener ?? $this->listener)($event, $eventName, $dispatcher);
-        } catch (TypeError $e) {
-            if (!$this->dispatcher instanceof TraceableEventDispatcher) {
+            ($this->listener)($event, $eventName, $dispatcher);
+        } catch (ArgumentCountError $e) {
+            if (!$dispatcher instanceof TraceableEventDispatcher) {
                 throw $e;
             }
 
-            if ($dispatcher instanceof LazyEventDispatcher) {
-                $dispatcher->getResolver()->call(
-                    $this->optimizedListener ?? $this->listener,
-                    [$event, $eventName, EventDispatcherInterface::class => $dispatcher]
-                );
-            } else {
-                ($this->optimizedListener ?? $this->listener)($event, $eventName, $dispatcher);
+            if ($this->isLazyDispatcher($dispatcher)) {
+                $dispatcher->getResolver()->call($this->listener, [$event, $eventName, $dispatcher]);
             }
         }
 
@@ -139,15 +130,28 @@ final class WrappedListener
         ];
     }
 
+    private function isLazyDispatcher(EventDispatcherInterface $dispatcher): bool
+    {
+        if ($dispatcher instanceof TraceableEventDispatcher) {
+            $dispatcher = $dispatcher->getDispatcher();
+        }
+
+        return $dispatcher instanceof LazyEventDispatcher;
+    }
+
     /**
-     * @param callable $listener
+     * @param mixed $listener
      */
     private function trackEventListener($listener): void
     {
         if (\is_array($listener)) {
             $this->name   = \is_object($listener[0]) ? get_debug_type($listener[0]) : $listener[0];
             $this->pretty = $this->name . '::' . $listener[1];
-        } elseif ($listener instanceof Closure) {
+
+            return;
+        }
+
+        if ($listener instanceof Closure) {
             $r = new ReflectionFunction($listener);
 
             if (false !== \strpos($r->name, '{closure}')) {
@@ -158,11 +162,10 @@ final class WrappedListener
             } else {
                 $this->pretty = $this->name = $r->name;
             }
-        } elseif (\is_string($listener)) {
-            $this->pretty = $this->name = $listener;
-        } else {
-            $this->name   = get_debug_type($listener);
-            $this->pretty = $this->name . '::__invoke';
+
+            return;
         }
+
+        $this->pretty = \is_string($listener) ? $this->name = $listener : null;
     }
 }

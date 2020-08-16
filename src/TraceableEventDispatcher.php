@@ -262,6 +262,14 @@ class TraceableEventDispatcher implements EventDispatcherInterface
     }
 
     /**
+     * @return EventDispatcherInterface
+     */
+    public function getDispatcher(): EventDispatcherInterface
+    {
+        return $this->dispatcher;
+    }
+
+    /**
      * Setter for the performance log records.
      *
      * @param string       $eventName
@@ -341,7 +349,13 @@ class TraceableEventDispatcher implements EventDispatcherInterface
         }
     }
 
-    private function sortNotCalledListeners(array $a, array $b)
+    /**
+     * @codeCoverageIgnore
+     *
+     * @param array<string,mixed> $a
+     * @param array<string,mixed< $b
+     */
+    private function sortNotCalledListeners(array $a, array $b): int
     {
         if (0 !== $cmp = \strcmp($a['event'], $b['event'])) {
             return $cmp;

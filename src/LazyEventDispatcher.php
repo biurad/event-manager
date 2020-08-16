@@ -21,7 +21,6 @@ use DivineNii\Invoker\Interfaces\InvokerInterface;
 use DivineNii\Invoker\Invoker;
 use Psr\EventDispatcher\StoppableEventInterface;
 use Symfony\Component\EventDispatcher\EventDispatcher;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 /**
  * {@inheritdoc}
@@ -61,16 +60,7 @@ class LazyEventDispatcher extends EventDispatcher
                 break;
             }
 
-            if ($listener instanceof WrappedListener) {
-                $listener($event, $eventName, $this);
-
-                continue;
-            }
-
-            $this->resolver->call(
-                $listener,
-                [$event, $eventName, EventDispatcherInterface::class => $this]
-            );
+            $this->resolver->call($listener, [$event, $eventName, $this]);
         }
     }
 }
