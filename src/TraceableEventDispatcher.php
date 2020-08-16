@@ -26,36 +26,39 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 class TraceableEventDispatcher implements EventDispatcherInterface
 {
+    /** @var null|LoggerInterface */
     protected $logger;
 
     /** @var EventDispatcherInterface */
     private $dispatcher;
 
-    /** @var array */
-    private $eventsLog = [];
+    /** @var array<int,array<string,string>> */
+    private $eventsLog;
 
-    /** @var SplObjectStorage */
+    /** @var null|SplObjectStorage */
     private $callStack;
 
-    /** @var array */
-    private $wrappedListeners = [];
+    /** @var array<string,array<int,mixed>> */
+    private $wrappedListeners;
 
-    /** @var array */
-    private $orphanedEvents = [];
+    /** @var string[] */
+    private $orphanedEvents;
 
     public function __construct(EventDispatcherInterface $dispatcher, LoggerInterface $logger = null)
     {
         $this->dispatcher       = $dispatcher;
+
         $this->logger           = $logger;
         $this->wrappedListeners = [];
         $this->orphanedEvents   = [];
+        $this->eventsLog        = [];
     }
 
     /**
      * Proxies all method calls to the original event dispatcher.
      *
-     * @param string $method    The method name
-     * @param array  $arguments The method arguments
+     * @param string                  $method    The method name
+     * @param array<int|string,mixed> $arguments The method arguments
      *
      * @return mixed
      */
@@ -82,6 +85,10 @@ class TraceableEventDispatcher implements EventDispatcherInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @param mixed $listener
+     *
+     * @return mixed
      */
     public function removeListener(string $eventName, $listener)
     {
@@ -101,6 +108,8 @@ class TraceableEventDispatcher implements EventDispatcherInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @return mixed
      */
     public function removeSubscriber(EventSubscriberInterface $subscriber)
     {
@@ -109,6 +118,8 @@ class TraceableEventDispatcher implements EventDispatcherInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string,mixed>
      */
     public function getListeners(string $eventName = null)
     {
@@ -117,13 +128,15 @@ class TraceableEventDispatcher implements EventDispatcherInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @param mixed $listener
      */
     public function getListenerPriority(string $eventName, $listener)
     {
         // we might have wrapped listeners for the event (if called while dispatching)
         // in that case get the priority by wrapper
         if (isset($this->wrappedListeners[$eventName])) {
-            foreach ($this->wrappedListeners[$eventName] as $index => $wrappedListener) {
+            foreach ($this->wrappedListeners[$eventName] as $wrappedListener) {
                 if ($wrappedListener->getWrappedListener() === $listener) {
                     return $this->dispatcher->getListenerPriority($eventName, $wrappedListener);
                 }
@@ -158,7 +171,7 @@ class TraceableEventDispatcher implements EventDispatcherInterface
             );
         }
 
-        $timerStart = \microtime(true);
+        $timerStart = (float) \microtime(true);
         $this->preProcess($eventName);
 
         try {
@@ -174,7 +187,7 @@ class TraceableEventDispatcher implements EventDispatcherInterface
     }
 
     /**
-     * @return array
+     * @return array<int,array<string,mixed>>
      */
     public function getCalledListeners()
     {
@@ -184,6 +197,7 @@ class TraceableEventDispatcher implements EventDispatcherInterface
 
         $called = [];
 
+        /** @var WrappedListener $listener */
         foreach ($this->callStack as $listener) {
             $called[] = $listener->getInfo(\current($this->callStack->getInfo()));
         }
@@ -192,9 +206,9 @@ class TraceableEventDispatcher implements EventDispatcherInterface
     }
 
     /**
-     * @return array
+     * @return array<int,array<string,mixed>>
      */
-    public function getNotCalledListeners()
+    public function getNotCalledListeners(): array
     {
         try {
             $allListeners = $this->getListeners();
@@ -213,6 +227,7 @@ class TraceableEventDispatcher implements EventDispatcherInterface
         $calledListeners = [];
 
         if (null !== $this->callStack) {
+            /** @var WrappedListener $calledListener */
             foreach ($this->callStack as $calledListener) {
                 $calledListeners[] = $calledListener->getWrappedListener();
             }
@@ -236,9 +251,12 @@ class TraceableEventDispatcher implements EventDispatcherInterface
         return $notCalled;
     }
 
+    /**
+     * @return string[]
+     */
     public function getOrphanedEvents(): array
     {
-        if (!$this->orphanedEvents) {
+        if (empty($this->orphanedEvents)) {
             return [];
         }
 
@@ -254,7 +272,7 @@ class TraceableEventDispatcher implements EventDispatcherInterface
     /**
      * Getter for the performance log records.
      *
-     * @return array
+     * @return array<int,array<string,string>>
      */
     public function getEventsLogs(): array
     {
@@ -272,10 +290,10 @@ class TraceableEventDispatcher implements EventDispatcherInterface
     /**
      * Setter for the performance log records.
      *
-     * @param string       $eventName
-     * @param float|string $timerStart
+     * @param string $eventName
+     * @param float  $timerStart
      */
-    private function setEventsLog(string $eventName, $timerStart): void
+    private function setEventsLog(string $eventName, float $timerStart): void
     {
         $this->eventsLog[] = [
             'event'    => $eventName,
@@ -300,8 +318,11 @@ class TraceableEventDispatcher implements EventDispatcherInterface
             );
             $this->wrappedListeners[$eventName][] = $wrappedListener;
             $this->dispatcher->removeListener($eventName, $listener);
-            $this->dispatcher->addListener($eventName, $wrappedListener, $priority);
-            $this->callStack->attach($wrappedListener, \compact('eventName'));
+            $this->dispatcher->addListener($eventName, $wrappedListener, $priority ?? 0);
+
+            if (null !== $this->callStack) {
+                $this->callStack->attach($wrappedListener, \compact('eventName'));
+            }
         }
     }
 
@@ -318,17 +339,15 @@ class TraceableEventDispatcher implements EventDispatcherInterface
             // Unwrap listener
             $priority = $this->getListenerPriority($eventName, $listener);
             $this->dispatcher->removeListener($eventName, $listener);
-            $this->dispatcher->addListener($eventName, $listener->getWrappedListener(), $priority);
+            $this->dispatcher->addListener($eventName, $listener->getWrappedListener(), $priority ?? 0);
 
-            if (null !== $this->logger) {
-                $context = ['event' => $eventName, 'listener' => $listener->getPretty()];
-            }
+            $context = null !== $this->logger ? ['event' => $eventName, 'listener' => $listener->getPretty()] : [];
 
             if ($listener->wasCalled()) {
                 if (null !== $this->logger) {
                     $this->logger->debug('Notified event "{event}" to listener "{listener}".', $context);
                 }
-            } else {
+            } elseif (null !== $this->callStack) {
                 $this->callStack->detach($listener);
             }
 
@@ -353,7 +372,7 @@ class TraceableEventDispatcher implements EventDispatcherInterface
      * @codeCoverageIgnore
      *
      * @param array<string,mixed> $a
-     * @param array<string,mixed< $b
+     * @param array<string,mixed> $b
      */
     private function sortNotCalledListeners(array $a, array $b): int
     {

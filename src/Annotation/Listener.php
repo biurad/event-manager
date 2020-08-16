@@ -18,7 +18,6 @@ declare(strict_types=1);
 namespace BiuradPHP\Events\Annotation;
 
 use BadMethodCallException;
-use Closure;
 
 /**
  *  Annotation class for @Listener().
@@ -31,20 +30,23 @@ class Listener
     /** @var int */
     private $priority = 1;
 
-    /** @var null|callable|Closure|string */
+    /** @var null|string */
     private $event;
 
-    public function __construct($data = null)
+    /**
+     * @param array<string,mixed> $data
+     */
+    public function __construct(array $data = null)
     {
         if (isset($data['value'])) {
             $data['event'] = (string) $data['value'];
             unset($data['value']);
         }
 
-        foreach (!empty($data) ? $data : [] as $key => $listener) {
+        foreach ($data ?? [] as $key => $listener) {
             if (!\property_exists($this, $key)) {
                 throw new BadMethodCallException(
-                    \sprintf('Unknown property "%s" on annotation "%s".', $key, \get_class($this))
+                    \sprintf('Unknown property "%s" on annotation "%s".', $key, __CLASS__)
                 );
             }
 
@@ -63,9 +65,9 @@ class Listener
     /**
      * Get the event listener
      *
-     * @return null|callable|Closure|string
+     * @return null|string
      */
-    public function getEvent()
+    public function getEvent(): ?string
     {
         return $this->event;
     }

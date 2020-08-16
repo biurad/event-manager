@@ -29,24 +29,32 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
  */
 final class WrappedListener
 {
+    /** @var mixed */
     private $listener;
 
+    /** @var string */
     private $name;
 
+    /** @var bool */
     private $called;
 
+    /** @var bool */
     private $stoppedPropagation;
 
+    /** @var null|EventDispatcherInterface */
     private $dispatcher;
 
+    /** @var string */
     private $duration;
 
+    /** @var null|string */
     private $pretty;
 
+    /** @var null|int */
     private $priority;
 
     /**
-     * @param callable                 $listener
+     * @param mixed                    $listener
      * @param null|string              $name
      * @param EventDispatcherInterface $dispatcher
      */
@@ -95,6 +103,9 @@ final class WrappedListener
         }
     }
 
+    /**
+     * @return mixed
+     */
     public function getWrappedListener()
     {
         return $this->listener;
@@ -110,17 +121,23 @@ final class WrappedListener
         return $this->stoppedPropagation;
     }
 
-    public function getPretty(): string
+    public function getPretty(): ?string
     {
         return $this->pretty;
     }
 
+    /**
+     * @param string $eventName
+     *
+     * @return array<string,mixed>
+     */
     public function getInfo(string $eventName): array
     {
-        if (null !== $this->dispatcher) {
+        $priority = $this->priority;
+
+        if (null === $priority && null !== $this->dispatcher) {
             $priority = $this->dispatcher->getListenerPriority($eventName, $this->listener);
         }
-        $priority = null !== $this->priority ? $this->priority : $priority;
 
         return [
             'event'      => $eventName,
@@ -156,7 +173,7 @@ final class WrappedListener
 
             if (false !== \strpos($r->name, '{closure}')) {
                 $this->pretty = $this->name = 'closure';
-            } elseif ($class = $r->getClosureScopeClass()) {
+            } elseif (null !== $class = $r->getClosureScopeClass()) {
                 $this->name   = $class->name;
                 $this->pretty = $this->name . '::' . $r->name;
             } else {

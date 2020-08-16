@@ -33,10 +33,11 @@ class LazyEventDispatcher extends EventDispatcher
     private $resolver;
 
     /**
-     * @param Container $container
+     * @param InvokerInterface $invoker
      */
     public function __construct(InvokerInterface $invoker = null)
     {
+        parent::__construct();
         $this->resolver = $invoker ?? new Invoker();
     }
 
@@ -53,10 +54,8 @@ class LazyEventDispatcher extends EventDispatcher
      */
     protected function callListeners(iterable $listeners, string $eventName, object $event): void
     {
-        $stoppable = $event instanceof StoppableEventInterface;
-
         foreach ($listeners as $listener) {
-            if ($stoppable && $event->isPropagationStopped()) {
+            if ($event instanceof StoppableEventInterface && $event->isPropagationStopped()) {
                 break;
             }
 
