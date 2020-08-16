@@ -17,13 +17,16 @@ declare(strict_types=1);
 
 namespace BiuradPHP\Events\Tests;
 
+use BiuradPHP\Events\LazyEventDispatcher;
 use BiuradPHP\Events\TraceableEventDispatcher;
+use DivineNii\Invoker\Invoker;
 use PHPUnit\Framework\TestCase;
+use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
+use RuntimeException;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
-use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Contracts\EventDispatcher\Event;
 
 class TraceableEventDispatcherTest extends TestCase
@@ -123,7 +126,7 @@ class TraceableEventDispatcherTest extends TestCase
         $dispatcher  = new EventDispatcher();
         $tdispatcher = new TraceableEventDispatcher($dispatcher, new NullLogger());
 
-        $subscriber = new EventSubscriber();
+        $subscriber = new Fixtures\EventSubscriber();
 
         $tdispatcher->addSubscriber($subscriber);
         $listeners = $dispatcher->getListeners('foo');
@@ -175,6 +178,24 @@ class TraceableEventDispatcherTest extends TestCase
         $expected  = ['event' => 'foo', 'pretty' => 'closure', 'priority' => 5, 'duration' => null];
         $this->assertEquals([], $tdispatcher->getCalledListeners());
         $this->assertEquals([$expected], $listeners);
+    }
+
+    public function testNotCalledListenersWithException(): void
+    {
+        $dispatcher = $this->getMockBuilder(EventDispatcher::class)->getMock();
+        $dispatcher->method('getListeners')->willThrowException($e = new RuntimeException());
+
+        $logger = $this->getMockBuilder(LoggerInterface::class)->getMock();
+
+        $tdispatcher = new TraceableEventDispatcher($dispatcher, $logger);
+        $tdispatcher->addListener(
+            'foo',
+            function (): void {
+            }
+        );
+
+        $logger->expects($this->at(0))->method('info')->with('An exception was thrown while getting the uncalled listeners.', ['exception' => $e]);
+        $this->assertEquals([], $tdispatcher->getNotCalledListeners());
     }
 
     public function testDispatchAfterReset(): void
@@ -314,6 +335,80 @@ class TraceableEventDispatcherTest extends TestCase
         $this->assertSame(['foo2', 'foo1'], $called);
     }
 
+    public function testLazyDispatchCallListeners(): void
+    {
+        $called = [];
+
+        $dispatcher  = new LazyEventDispatcher();
+        $tdispatcher = new TraceableEventDispatcher($dispatcher, new NullLogger());
+        $tdispatcher->addListener(
+            'foo',
+            function (Event $event, $eventName, $dispatcher, $hello = 'Divine') use (&$called): void {
+                $called[] = $hello;
+            },
+            10
+        );
+        $tdispatcher->addListener(
+            'foo',
+            function (Event $event, $eventName, $dispatcher, NullLogger $logger) use (&$called): void {
+                $called[] = $logger;
+            },
+            20
+        );
+
+        $tdispatcher->dispatch(new Event(), 'foo');
+
+        $this->assertNotEmpty($called);
+        $this->assertEquals('Divine', $called[1]);
+        $this->assertInstanceOf(LoggerInterface::class, $called[0]);
+    }
+
+    public function testLazyDispatchWithContainerAndCallListeners(): void
+    {
+        $called    = [];
+        $container = $this->getMockBuilder(ContainerInterface::class)->getMock();
+        $container->method('has')->with('logger')->willReturn(true);
+        $container->method('get')->with('logger')->willReturn(new NullLogger());
+
+        $dispatcher  = new LazyEventDispatcher(new Invoker([], $container));
+        $tdispatcher = new TraceableEventDispatcher($dispatcher);
+        $tdispatcher->addListener(
+            'foo',
+            function (Event $event, $eventName, $dispatcher, $logger) use (&$called): void {
+                $called[] = $logger;
+            }
+        );
+
+        $tdispatcher->dispatch(new Event(), 'foo');
+
+        $this->assertNotEmpty($called);
+        $this->assertInstanceOf(LoggerInterface::class, $called[0]);
+    }
+
+    public function testLazyDispatchWithStoppedPropagationAndLogger(): void
+    {
+        $logger = $this->getMockBuilder(LoggerInterface::class)->getMock();
+
+        $dispatcher  = new LazyEventDispatcher();
+        $tdispatcher = new TraceableEventDispatcher($dispatcher, $logger);
+        $tdispatcher->addListener(
+            'foo',
+            function (Event $event, $eventName, $dispatcher): void {
+            }
+        );
+
+        $logger->expects($this->at(0))->method('debug')->with('The "foo" event is already stopped. No listeners have been called.');
+
+        $event = new Event();
+        $event->stopPropagation();
+        $tdispatcher->dispatch($event, 'foo');
+
+        $events = $tdispatcher->getOrphanedEvents();
+        $this->assertCount(0, $events);
+        $this->assertEquals([], $events);
+        $this->assertCount(1, $tdispatcher->getEventsLogs());
+    }
+
     public function testDispatchNested(): void
     {
         $dispatcher       = new TraceableEventDispatcher(new EventDispatcher(), new NullLogger());
@@ -389,13 +484,5 @@ class TraceableEventDispatcherTest extends TestCase
         $tdispatcher->reset();
         $events = $tdispatcher->getOrphanedEvents();
         $this->assertCount(0, $events);
-    }
-}
-
-class EventSubscriber implements EventSubscriberInterface
-{
-    public static function getSubscribedEvents(): array
-    {
-        return ['foo' => 'call'];
     }
 }
