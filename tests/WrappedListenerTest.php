@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /*
- * This file is part of BiuradPHP opensource projects.
+ * This file is part of Biurad opensource projects.
  *
  * PHP version 7.2 and above required
  *
@@ -15,12 +15,12 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace BiuradPHP\Events\Tests;
+namespace Biurad\Events\Tests;
 
 use ArgumentCountError;
-use BiuradPHP\Events\LazyEventDispatcher;
-use BiuradPHP\Events\TraceableEventDispatcher;
-use BiuradPHP\Events\WrappedListener;
+use Biurad\Events\LazyEventDispatcher;
+use Biurad\Events\TraceableEventDispatcher;
+use Biurad\Events\WrappedListener;
 use Closure;
 use Generator;
 use PHPUnit\Framework\TestCase;
@@ -82,32 +82,32 @@ class WrappedListenerTest extends TestCase
 
         yield 'Test Pretty Invoke Object' => [
             new Fixtures\FooListener(),
-            'BiuradPHP\Events\Tests\Fixtures\FooListener::__invoke',
+            'Biurad\Events\Tests\Fixtures\FooListener::__invoke',
         ];
 
         yield 'Test Pretty Callable' => [
             [new Fixtures\FooListener(), 'listen'],
-            'BiuradPHP\Events\Tests\Fixtures\FooListener::listen',
+            'Biurad\Events\Tests\Fixtures\FooListener::listen',
         ];
 
         yield 'Test Pretty Static Callable' => [
             [Fixtures\FooListener::class, 'listenStatic'],
-            'BiuradPHP\Events\Tests\Fixtures\FooListener::listenStatic',
+            'Biurad\Events\Tests\Fixtures\FooListener::listenStatic',
         ];
 
         yield 'Test Pretty Array' => [
             [Fixtures\FooListener::class, 'invalidMethod'],
-            'BiuradPHP\Events\Tests\Fixtures\FooListener::invalidMethod',
+            'Biurad\Events\Tests\Fixtures\FooListener::invalidMethod',
         ];
 
         yield 'Test Pretty Closure Cast' => [
             Closure::fromCallable([new Fixtures\FooListener(), 'listen']),
-            'BiuradPHP\Events\Tests\Fixtures\FooListener::listen',
+            'Biurad\Events\Tests\Fixtures\FooListener::listen',
         ];
 
         yield 'Test Pretty Closure Static Cast' => [
             Closure::fromCallable([Fixtures\FooListener::class, 'listenStatic']),
-            'BiuradPHP\Events\Tests\Fixtures\FooListener::listenStatic',
+            'Biurad\Events\Tests\Fixtures\FooListener::listenStatic',
         ];
 
         yield 'Test Pretty Closure' => [

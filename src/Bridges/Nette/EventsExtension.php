@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /*
- * This file is part of BiuradPHP opensource projects.
+ * This file is part of Biurad opensource projects.
  *
  * PHP version 7.2 and above required
  *
@@ -15,10 +15,10 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace BiuradPHP\Events\Bridges\Nette;
+namespace Biurad\Events\Bridges\Nette;
 
-use BiuradPHP\Events\LazyEventDispatcher;
-use BiuradPHP\Events\TraceableEventDispatcher;
+use Biurad\Events\LazyEventDispatcher;
+use Biurad\Events\TraceableEventDispatcher;
 use Nette;
 use Nette\DI\Definitions\Reference;
 use Nette\DI\Definitions\Statement;

@@ -33,7 +33,7 @@ The lazy event dispatcher can be used to [PSR-11] container autowiring for liste
 
 ```php
 <?php
-use BiuradPHP\Events\LazyEventDispatcher;
+use Biurad\Events\LazyEventDispatcher;
 
 $dispatcher = new LazyEventDispatcher();
 ```
@@ -61,7 +61,7 @@ The Traceable EventDispatcher is an event dispatcher that wraps any other event 
 
 ```php
 <?php
-use BiuradPHP\Events\TraceableEventDispatcher;
+use Biurad\Events\TraceableEventDispatcher;
 use Psr\Log\NullLogger;
 
 // the event dispatcher to debug

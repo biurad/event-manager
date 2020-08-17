@@ -36,12 +36,12 @@
     },
     "autoload": {
         "psr-4": {
-            "BiuradPHP\\Events\\": "src/"
+            "Biurad\\Events\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "BiuradPHP\\Events\\Tests\\": "Tests/"
+            "Biurad\\Events\\Tests\\": "tests/"
         }
     },
     "scripts": {

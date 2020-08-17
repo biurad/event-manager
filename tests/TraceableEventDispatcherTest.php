@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /*
- * This file is part of BiuradPHP opensource projects.
+ * This file is part of Biurad opensource projects.
  *
  * PHP version 7.2 and above required
  *
@@ -15,11 +15,12 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace BiuradPHP\Events\Tests;
+namespace Biurad\Events\Tests;
 
-use BiuradPHP\Events\LazyEventDispatcher;
-use BiuradPHP\Events\TraceableEventDispatcher;
+use Biurad\Events\LazyEventDispatcher;
+use Biurad\Events\TraceableEventDispatcher;
 use DivineNii\Invoker\Invoker;
+use PHPUnit\Framework\MockObject\Rule\InvokedAtIndex;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
@@ -194,7 +195,7 @@ class TraceableEventDispatcherTest extends TestCase
             }
         );
 
-        $logger->expects($this->at(0))->method('info')->with('An exception was thrown while getting the uncalled listeners.', ['exception' => $e]);
+        $logger->expects(new InvokedAtIndex(0))->method('info')->with('An exception was thrown while getting the uncalled listeners.', ['exception' => $e]);
         $this->assertEquals([], $tdispatcher->getNotCalledListeners());
     }
 
@@ -278,8 +279,8 @@ class TraceableEventDispatcherTest extends TestCase
             }
         );
 
-        $logger->expects($this->at(0))->method('debug')->with('Notified event "{event}" to listener "{listener}".', ['event' => 'foo', 'listener' => 'closure']);
-        $logger->expects($this->at(1))->method('debug')->with('Notified event "{event}" to listener "{listener}".', ['event' => 'foo', 'listener' => 'closure']);
+        $logger->expects(new InvokedAtIndex(0))->method('debug')->with('Notified event "{event}" to listener "{listener}".', ['event' => 'foo', 'listener' => 'closure']);
+        $logger->expects(new InvokedAtIndex(1))->method('debug')->with('Notified event "{event}" to listener "{listener}".', ['event' => 'foo', 'listener' => 'closure']);
 
         $tdispatcher->dispatch(new Event(), 'foo');
     }
@@ -302,9 +303,9 @@ class TraceableEventDispatcherTest extends TestCase
             }
         );
 
-        $logger->expects($this->at(0))->method('debug')->with('Notified event "{event}" to listener "{listener}".', ['event' => 'foo', 'listener' => 'closure']);
-        $logger->expects($this->at(1))->method('debug')->with('Listener "{listener}" stopped propagation of the event "{event}".', ['event' => 'foo', 'listener' => 'closure']);
-        $logger->expects($this->at(2))->method('debug')->with('Listener "{listener}" was not called for event "{event}".', ['event' => 'foo', 'listener' => 'closure']);
+        $logger->expects(new InvokedAtIndex(0))->method('debug')->with('Notified event "{event}" to listener "{listener}".', ['event' => 'foo', 'listener' => 'closure']);
+        $logger->expects(new InvokedAtIndex(1))->method('debug')->with('Listener "{listener}" stopped propagation of the event "{event}".', ['event' => 'foo', 'listener' => 'closure']);
+        $logger->expects(new InvokedAtIndex(2))->method('debug')->with('Listener "{listener}" was not called for event "{event}".', ['event' => 'foo', 'listener' => 'closure']);
 
         $tdispatcher->dispatch(new Event(), 'foo');
     }
@@ -397,7 +398,7 @@ class TraceableEventDispatcherTest extends TestCase
             }
         );
 
-        $logger->expects($this->at(0))->method('debug')->with('The "foo" event is already stopped. No listeners have been called.');
+        $logger->expects(new InvokedAtIndex(0))->method('debug')->with('The "foo" event is already stopped. No listeners have been called.');
 
         $event = new Event();
         $event->stopPropagation();
