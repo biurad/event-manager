@@ -1,75 +1,165 @@
-# Event manager for listening and dispatching events
+# The Biurad PHP Events Bus
 
-Events serve as a great way to decouple various aspects of your application, since a single event can have multiple listeners that do not depend on each other. For example, you may wish to send a Slack notification to your user each time an order has shipped. Instead of coupling your order processing code to your Slack notification code, you can raise an `OrderShipped` event, which a listener can receive and transform into a Slack notification.
+[![Latest Version](https://img.shields.io/packagist/v/biurad/php-events-bus.svg?style=flat-square)](https://packagist.org/packages/biurad/events-bus)
+[![Software License](https://img.shields.io/badge/License-BSD--3-brightgreen.svg?style=flat-square)](LICENSE)
+[![Workflow Status](https://img.shields.io/github/workflow/status/biurad/php-events-bus/Tests?style=flat-square)](https://github.com/biurad/php-events-bus/actions?query=workflow%3ATests)
+[![Code Maintainability](https://img.shields.io/codeclimate/maintainability/biurad/php-events-bus?style=flat-square)](https://codeclimate.com/github/biurad/php-events-bus)
+[![Coverage Status](https://img.shields.io/codecov/c/github/biurad/php-events-bus?style=flat-square)](https://codecov.io/gh/biurad/php-events-bus)
+[![Quality Score](https://img.shields.io/scrutinizer/g/biurad/php-events-bus.svg?style=flat-square)](https://scrutinizer-ci.com/g/biurad/php-events-bus)
+[![Sponsor development of this project](https://img.shields.io/badge/sponsor%20this%20package-%E2%9D%A4-ff69b4.svg?style=flat-square)](https://biurad.com/sponsor)
 
-**`Please note that this documentation is currently work-in-progress. Feel free to contribute.`**
+**biurad/php-events-bus** is a php events dispatcher for [PHP] 7.2+ based on [The Symfony EventDispatcher][symfony-event-dispatcher], created by [Fabien Potencier][@fabpot]. which provides tools that allow your application components to communicate with each other by dispatching events and listening to them.
 
-## Installation
+[The Symfony EventDispatcher][symfony-event-dispatcher] component implements the [Mediator](https://en.wikipedia.org/wiki/Mediator_pattern) and [Observer](https://en.wikipedia.org/wiki/Observer_pattern) design patterns to make all these things possible and to make your projects truly extensible. This package adds a touch of [PSR-11] container, removes [The Symfony Stopwatch][symfony-stopwatch] component from traceable events, and adds a minor performance gain.
 
-The recommended way to install Event Manager is via Composer:
+## 📦 Installation & Basic Usage
 
-```bash
-composer require biurad/biurad-events-bus
-```
-
-It requires PHP version 7.2 and supports PHP up to 7.4. The dev-master version requires PHP 7.2.
-
-## How To Use
-
-Next, let's take a look at the listener for our example event. Event listeners receive the event instance in any method provided. Import the proper event class and type-hint the event on the method. Within the method, you may perform any actions necessary to respond to the event:
-
-Sometimes, you may wish to stop the propagation of an event to other listeners. You may do so by returning `false` from your listener's method.
-
-To dispatch an event, you may pass an instance of the event to the `addListener` method. The dispatcher will dispatch the event to all of its registered listeners. Since the `EventDispatcher` is globally available, you may call it from anywhere in your application.
-
-Event subscribers are classes that may subscribe to multiple events from within the class itself, allowing you to define several event handlers within a single class. Subscribers should define a static `getSubscribedEvents` method, which will be passed an event dispatcher instance. You may call the `listen` method on the given dispatcher to register event listeners.
-
-## Changelog
-
-Please see [CHANGELOG](CHANGELOG.md) for more information what has changed recently.
-
-## Contributing
-
-Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
-
-## Testing
-
-To run the tests you'll have to start the included node based server if any first in a separate terminal window.
-
-With the server running, you can start testing.
+This project requires [PHP] 7.2 or higher. The recommended way to install, is via [Composer]. Simply run:
 
 ```bash
-vendor/bin/phpunit
+$ composer require biurad/events-bus
 ```
 
-## Security
+The dispatcher is the central object of the event dispatcher system. In general, a single dispatcher is created, which maintains a registry of listeners. When an event is dispatched via the dispatcher, it notifies all listeners registered with that event. In addition to registering listeners with existing events, you can create and dispatch your own events. This is useful feature by symfony to keep different components of your own system flexible and decoupled:
 
-If you discover any security related issues, please report using the issue tracker.
-use our example [Issue Report](.github/ISSUE_TEMPLATE/Bug_report.md) template.
+```php
+<?php
+use Symfony\Component\EventDispatcher\EventDispatcher;
 
-## Want to be listed on our projects website
+$dispatcher = new EventDispatcher();
+```
 
-You're free to use this package, but if it makes it to your production environment we highly appreciate you sending us a message on our website, mentioning which of our package(s) you are using.
+The lazy event dispatcher can be used to [PSR-11] container autowiring for listeners called on events, you can add [The DivineNii PHP Invoker][divinenii-php-invoker] library's class instance `DivineNii\Invoker\Invoker`, injecting optional callable resolvers and a [PSR-11] container complaint instance.
 
-Post Here: [Project Patreons - https://patreons.biurad.com](https://patreons.biurad.com)
+```php
+<?php
+use BiuradPHP\Events\LazyEventDispatcher;
 
-We publish all received request's on our website.
+$dispatcher = new LazyEventDispatcher();
+```
 
-## Credits
+To take advantage of an existing event, you need to connect a listener to the dispatcher so that it can be notified when the event is dispatched. A call to the dispatcher's addListener() method associates any valid PHP callable to an event:
 
-- [Divine Niiquaye](https://github.com/divineniiquaye)
-- [All Contributors](https://biurad.com/projects/biurad-events-bus/contributers)
+```php
+<?php
+use Symfony\Contracts\EventDispatcher\Event;
 
-## Support us
+$listener = new AcmeListener();
 
-`Biurad Lap` is a technology agency in Accra, Ghana. You'll find an overview of all our open source projects [on our website](https://biurad.com/opensource).
+$dispatcher->addListener('acme.foo.action', [$listener, 'onFooAction']);
 
-Does your business depend on our contributions? Reach out and support us on to build more project's. We want to build over one hundred project's in two years. [Support Us](https://biurad.com/donate) achieve our goal.
+// or
 
-Reach out and support us on [Patreon](https://www.patreon.com/biurad). All pledges will be dedicated to allocating workforce on maintenance and new awesome stuff.
+$dispatcher->addListener('acme.foo.action', function (Event $event) {
+    // will be executed when the acme.foo.action event is dispatched
+});
+```
 
-[Thanks to all who made Donations and Pledges to Us.](.github/ISSUE_TEMPLATE/Support_us.md)
+Once a listener is registered with the dispatcher, it waits until the event is notified. In the above example, when the `acme.foo.action` event is dispatched, the dispatcher calls the given listener method or closure and passes the [Event](http://api.symfony.com/master/Symfony/Contracts/EventDispatcher/Event.html) object as the single argument.
 
-## License
+The Traceable EventDispatcher is an event dispatcher that wraps any other event dispatcher and can then be used to determine which event listeners have been called by the dispatcher. Pass the event dispatcher to be wrapped and an instance of the [PSR-3] logger to its constructor:
 
-The BSD-3-Clause . Please see [License File](LICENSE.md) for more information.
+```php
+<?php
+use BiuradPHP\Events\TraceableEventDispatcher;
+use Psr\Log\NullLogger;
+
+// the event dispatcher to debug
+$dispatcher = ...;
+
+$traceableEventDispatcher = new TraceableEventDispatcher($dispatcher, new NullLogger());
+```
+After your application has been processed, you can use the [getCalledListeners()](http://api.symfony.com/master/Symfony/Component/EventDispatcher/Debug/TraceableEventDispatcher.html#method_getCalledListeners) method to retrieve an array of event listeners that have been called in your application. Similarly, the [getNotCalledListeners()](http://api.symfony.com/master/Symfony/Component/EventDispatcher/Debug/TraceableEventDispatcher.html#method_getNotCalledListeners) method returns an array of event listeners that have not been called:
+
+```php
+// ...
+
+$calledListeners = $traceableEventDispatcher->getCalledListeners();
+$notCalledListeners = $traceableEventDispatcher->getNotCalledListeners();
+```
+
+To have more of documentation, I advice you check out [The Symfony EventDispatcher][symfony-event-dispatcher] component documentation provided on [Symfony](https://symfony.com) website.
+
+## 📓 Documentation
+
+For in-depth documentation before using this library. Full documentation on advanced usage, configuration, and customization can be found at [docs.biurad.com][docs].
+
+## ⏫ Upgrading
+
+Information on how to upgrade to newer versions of this library can be found in the [UPGRADE].
+
+## 🏷️ Changelog
+
+[SemVer](http://semver.org/) is followed closely. Minor and patch releases should not introduce breaking changes to the codebase; See [CHANGELOG] for more information on what has changed recently.
+
+Any classes or methods marked `@internal` are not intended for use outside of this library and are subject to breaking changes at any time, so please avoid using them.
+
+## 🛠️ Maintenance & Support
+
+When a new **major** version is released (`1.0`, `2.0`, etc), the previous one (`0.19.x`) will receive bug fixes for _at least_ 3 months and security updates for 6 months after that new release comes out.
+
+(This policy may change in the future and exceptions may be made on a case-by-case basis.)
+
+**Professional support, including notification of new releases and security updates, is available at [Biurad Commits][commit].**
+
+## 👷‍♀️ Contributing
+
+To report a security vulnerability, please use the [Biurad Security](https://security.biurad.com). We will coordinate the fix and eventually commit the solution in this project.
+
+Contributions to this library are **welcome**, especially ones that:
+
+- Improve usability or flexibility without compromising our ability to adhere to [Mediator](https://en.wikipedia.org/wiki/Mediator_pattern) and [Observer](https://en.wikipedia.org/wiki/Observer_pattern) design patterns.
+- Optimize performance
+- Fix issues with adhering to this package.
+
+Please see [CONTRIBUTING] for additional details.
+
+## 🧪 Testing
+
+```bash
+$ composer test
+```
+
+This will tests biurad/php-events-bus will run against PHP 7.2 version or higher.
+
+## 👥 Credits & Acknowledgements
+
+- [Divine Niiquaye Ibok][@divineniiquaye]
+- [All Contributors][]
+
+## 🙌 Sponsors
+
+Are you interested in sponsoring development of this project? Reach out and support us on [Patreon](https://www.patreon.com/biurad) or see <https://biurad.com/sponsor> for a list of ways to contribute.
+
+## 📄 License
+
+**biurad/php-events-bus** is licensed under the BSD-3 license. See the [`LICENSE`](LICENSE) file for more details.
+
+## 🏛️ Governance
+
+This project is primarily maintained by [Divine Niiquaye Ibok][@divineniiquaye]. Members of the [Biurad Lap][] Leadership Team may occasionally assist with some of these duties.
+
+## 🗺️ Who Uses It?
+
+You're free to use this package, but if it makes it to your production environment we highly appreciate you sending us an [email] or [message] mentioning this library. We publish all received request's at <https://patreons.biurad.com>.
+
+Check out the other cool things people are doing with `biurad/php-events-bus`: <https://packagist.org/packages/biurad/events-bus/dependents>
+
+[PHP]: https://php.net
+[Composer]: https://getcomposer.org
+[@divineniiquaye]: https://github.com/divineniiquaye
+[docs]: https://docs.biurad.com/php-events-bus
+[commit]: https://commits.biurad.com/php-events-bus.git
+[UPGRADE]: UPGRADE-1.x.md
+[CHANGELOG]: CHANGELOG-0.x.md
+[CONTRIBUTING]: ./.github/CONTRIBUTING.md
+[All Contributors]: https://github.com/biurad/php-events-bus/contributors
+[Biurad Lap]: https://team.biurad.com
+[email]: support@biurad.com
+[message]: https://projects.biurad.com/message
+[PSR-3]: http://www.php-fig.org/psr/psr-3/
+[PSR-11]: http://www.php-fig.org/psr/psr-11/
+[divinenii-php-invoker]: https://github.com/divineniiquaye/php-invoker
+[@fabpot]: https://github.com/fabpot
+[symfony-event-dispatcher]: https://github.com/symfony/event-dispatcher
+[symfony-stopwatch]: https://github.com/symfony/stopwatch
