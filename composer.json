@@ -1,5 +1,5 @@
 {
-    "name": "biurad/biurad-events-bus",
+    "name": "biurad/events-bus",
     "type": "library",
     "description": "Symfony Event manager for listening and dispatching events",
     "keywords": ["events", "event dispatcher","biurad","php7"],
