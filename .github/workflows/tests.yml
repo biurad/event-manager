@@ -24,7 +24,7 @@ jobs:
             - run: vendor/bin/phpcs
 
     phpunit:
-        name: PHPUnit on ${{ matrix.php }}
+        name: PHPUnit on ${{ matrix.php }} and ${{ matrix.os }}
         runs-on: ${{ matrix.os }}
         strategy:
             matrix:
