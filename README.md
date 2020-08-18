@@ -1,6 +1,6 @@
 # The Biurad PHP Events Bus
 
-[![Latest Version](https://img.shields.io/packagist/v/biurad/php-events-bus.svg?style=flat-square)](https://packagist.org/packages/biurad/events-bus)
+[![Latest Version](https://img.shields.io/packagist/v/biurad/events-bus.svg?style=flat-square)](https://packagist.org/packages/biurad/events-bus)
 [![Software License](https://img.shields.io/badge/License-BSD--3-brightgreen.svg?style=flat-square)](LICENSE)
 [![Workflow Status](https://img.shields.io/github/workflow/status/biurad/php-events-bus/Tests?style=flat-square)](https://github.com/biurad/php-events-bus/actions?query=workflow%3ATests)
 [![Code Maintainability](https://img.shields.io/codeclimate/maintainability/biurad/php-events-bus?style=flat-square)](https://codeclimate.com/github/biurad/php-events-bus)
