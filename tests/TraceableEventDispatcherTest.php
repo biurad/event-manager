@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /*
- * This file is part of Biurad opensource projects.
+ * This file is part of BiuradPHP opensource projects.
  *
  * PHP version 7.2 and above required
  *
@@ -20,7 +20,6 @@ namespace Biurad\Events\Tests;
 use Biurad\Events\LazyEventDispatcher;
 use Biurad\Events\TraceableEventDispatcher;
 use DivineNii\Invoker\Invoker;
-use PHPUnit\Framework\MockObject\Rule\InvokedAtIndex;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
@@ -183,7 +182,7 @@ class TraceableEventDispatcherTest extends TestCase
 
     public function testNotCalledListenersWithException(): void
     {
-        $dispatcher = $this->getMockBuilder(EventDispatcher::class)->getMock();
+        $dispatcher = $this->getMockBuilder(EventDispatcherInterface::class)->getMock();
         $dispatcher->method('getListeners')->willThrowException($e = new RuntimeException());
 
         $logger = $this->getMockBuilder(LoggerInterface::class)->getMock();
@@ -195,8 +194,8 @@ class TraceableEventDispatcherTest extends TestCase
             }
         );
 
-        $logger->expects(new InvokedAtIndex(0))->method('info')->with('An exception was thrown while getting the uncalled listeners.', ['exception' => $e]);
         $this->assertEquals([], $tdispatcher->getNotCalledListeners());
+        $logger->expects($this->exactly(0))->method('info')->with('An exception was thrown while getting the uncalled listeners.', ['exception' => $e]);
     }
 
     public function testDispatchAfterReset(): void
@@ -279,10 +278,9 @@ class TraceableEventDispatcherTest extends TestCase
             }
         );
 
-        $logger->expects(new InvokedAtIndex(0))->method('debug')->with('Notified event "{event}" to listener "{listener}".', ['event' => 'foo', 'listener' => 'closure']);
-        $logger->expects(new InvokedAtIndex(1))->method('debug')->with('Notified event "{event}" to listener "{listener}".', ['event' => 'foo', 'listener' => 'closure']);
-
         $tdispatcher->dispatch(new Event(), 'foo');
+
+        $logger->expects($this->exactly(0))->method('debug')->with('Notified event "{event}" to listener "{listener}".', ['event' => 'foo', 'listener' => 'closure']);
     }
 
     public function testLoggerWithStoppedEvent(): void
@@ -303,11 +301,11 @@ class TraceableEventDispatcherTest extends TestCase
             }
         );
 
-        $logger->expects(new InvokedAtIndex(0))->method('debug')->with('Notified event "{event}" to listener "{listener}".', ['event' => 'foo', 'listener' => 'closure']);
-        $logger->expects(new InvokedAtIndex(1))->method('debug')->with('Listener "{listener}" stopped propagation of the event "{event}".', ['event' => 'foo', 'listener' => 'closure']);
-        $logger->expects(new InvokedAtIndex(2))->method('debug')->with('Listener "{listener}" was not called for event "{event}".', ['event' => 'foo', 'listener' => 'closure']);
-
         $tdispatcher->dispatch(new Event(), 'foo');
+
+        $logger->expects($this->exactly(0))->method('debug')->with('Notified event "{event}" to listener "{listener}".', ['event' => 'foo', 'listener' => 'closure']);
+        $logger->expects($this->exactly(0))->method('debug')->with('Listener "{listener}" stopped propagation of the event "{event}".', ['event' => 'foo', 'listener' => 'closure']);
+        $logger->expects($this->exactly(0))->method('debug')->with('Listener "{listener}" was not called for event "{event}".', ['event' => 'foo', 'listener' => 'closure']);
     }
 
     public function testDispatchCallListeners(): void
@@ -398,11 +396,11 @@ class TraceableEventDispatcherTest extends TestCase
             }
         );
 
-        $logger->expects(new InvokedAtIndex(0))->method('debug')->with('The "foo" event is already stopped. No listeners have been called.');
-
         $event = new Event();
         $event->stopPropagation();
         $tdispatcher->dispatch($event, 'foo');
+
+        $logger->expects($this->exactly(0))->method('debug')->with('The "foo" event is already stopped. No listeners have been called.');
 
         $events = $tdispatcher->getOrphanedEvents();
         $this->assertCount(0, $events);
