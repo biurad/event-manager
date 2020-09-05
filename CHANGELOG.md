@@ -1,14 +1,15 @@
-# Changelog
+# Change Log
+All notable changes to this project will be documented in this file.
+Updates should follow the [Keep a CHANGELOG](https://keepachangelog.com/) principles.
 
-All notable changes to `biurad/biurad-events-bus` will be documented in this file.
+## [Unreleased][unreleased]
 
-## 0.1.7 - 2020-06-17
+### Added
 
-- Improved code complexity and performance issues using cs fixtures
-- Replaced how events are handled with symfony/event-dispatcher
-- Updated php files header doc
-- Added phpunit tests
+### Changed
 
-## 0.1.0 - 2019-12-17
+### Fixed
 
-- First release
+### Removed
+
+[unreleased]: https://github.com/biurad/php-events-bus/compare/v0.1.6...master
