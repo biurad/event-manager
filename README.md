@@ -23,7 +23,6 @@ $ composer require biurad/events-bus
 The dispatcher is the central object of the event dispatcher system. In general, a single dispatcher is created, which maintains a registry of listeners. When an event is dispatched via the dispatcher, it notifies all listeners registered with that event. In addition to registering listeners with existing events, you can create and dispatch your own events. This is useful feature by symfony to keep different components of your own system flexible and decoupled:
 
 ```php
-<?php
 use Symfony\Component\EventDispatcher\EventDispatcher;
 
 $dispatcher = new EventDispatcher();
@@ -32,7 +31,6 @@ $dispatcher = new EventDispatcher();
 The lazy event dispatcher can be used to [PSR-11] container autowiring for listeners called on events, you can add [The DivineNii PHP Invoker][divinenii-php-invoker] library's class instance `DivineNii\Invoker\Invoker`, injecting optional callable resolvers and a [PSR-11] container complaint instance.
 
 ```php
-<?php
 use Biurad\Events\LazyEventDispatcher;
 
 $dispatcher = new LazyEventDispatcher();
@@ -41,7 +39,6 @@ $dispatcher = new LazyEventDispatcher();
 To take advantage of an existing event, you need to connect a listener to the dispatcher so that it can be notified when the event is dispatched. A call to the dispatcher's addListener() method associates any valid PHP callable to an event:
 
 ```php
-<?php
 use Symfony\Contracts\EventDispatcher\Event;
 
 $listener = new AcmeListener();
@@ -60,7 +57,6 @@ Once a listener is registered with the dispatcher, it waits until the event is n
 The Traceable EventDispatcher is an event dispatcher that wraps any other event dispatcher and can then be used to determine which event listeners have been called by the dispatcher. Pass the event dispatcher to be wrapped and an instance of the [PSR-3] logger to its constructor:
 
 ```php
-<?php
 use Biurad\Events\TraceableEventDispatcher;
 use Psr\Log\NullLogger;
 
@@ -78,11 +74,9 @@ $calledListeners = $traceableEventDispatcher->getCalledListeners();
 $notCalledListeners = $traceableEventDispatcher->getNotCalledListeners();
 ```
 
-To have more of documentation, I advice you check out [The Symfony EventDispatcher][symfony-event-dispatcher] component documentation provided on [Symfony](https://symfony.com) website.
-
 ## 📓 Documentation
 
-For in-depth documentation before using this library. Full documentation on advanced usage, configuration, and customization can be found at [docs.biurad.com][docs].
+To have more of documentation, I advice you check out [The Symfony EventDispatcher][symfony-event-dispatcher] component documentation provided on [Symfony](https://symfony.com) website.
 
 ## ⏫ Upgrading
 
@@ -120,7 +114,7 @@ Please see [CONTRIBUTING] for additional details.
 $ composer test
 ```
 
-This will tests biurad/php-events-bus will run against PHP 7.2 version or higher.
+This will tests biurad/events-bus will run against PHP 7.2 version or higher.
 
 ## 👥 Credits & Acknowledgements
 
@@ -148,7 +142,6 @@ Check out the other cool things people are doing with `biurad/php-events-bus`: <
 [PHP]: https://php.net
 [Composer]: https://getcomposer.org
 [@divineniiquaye]: https://github.com/divineniiquaye
-[docs]: https://docs.biurad.com/php-events-bus
 [commit]: https://commits.biurad.com/php-events-bus.git
 [UPGRADE]: UPGRADE-1.x.md
 [CHANGELOG]: CHANGELOG-0.x.md
