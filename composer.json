@@ -23,7 +23,7 @@
     },
     "require": {
         "php": "^7.2 || ^8.0",
-        "divineniiquaye/php-invoker": "^0.1",
+        "divineniiquaye/php-invoker": "^0.1 || ^0.9",
         "symfony/event-dispatcher": "^4.4 || ^5.1"
     },
     "require-dev": {
