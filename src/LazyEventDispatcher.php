@@ -21,6 +21,7 @@ use DivineNii\Invoker\Interfaces\InvokerInterface;
 use DivineNii\Invoker\Invoker;
 use Psr\EventDispatcher\StoppableEventInterface;
 use Symfony\Component\EventDispatcher\EventDispatcher;
+use TypeError;
 
 /**
  * {@inheritdoc}
@@ -33,9 +34,9 @@ class LazyEventDispatcher extends EventDispatcher
     private $resolver;
 
     /**
-     * @param InvokerInterface $invoker
+     * @param null|InvokerInterface $invoker
      */
-    public function __construct(InvokerInterface $invoker = null)
+    public function __construct(?InvokerInterface $invoker = null)
     {
         parent::__construct();
         $this->resolver = $invoker ?? new Invoker();
@@ -59,7 +60,15 @@ class LazyEventDispatcher extends EventDispatcher
                 break;
             }
 
-            $this->resolver->call($listener, [$event, $eventName, $this]);
+            try {
+                $listener($event, $eventName, $this);
+            } catch (TypeError $error) {
+                $this->resolver->call($listener, [
+                    \get_class($event)  => $event,
+                    'eventName'         => $eventName,
+                    __CLASS__           => $this,
+                ]);
+            }
         }
     }
 }

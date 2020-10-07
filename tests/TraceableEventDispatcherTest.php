@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /*
- * This file is part of BiuradPHP opensource projects.
+ * This file is part of Biurad opensource projects.
  *
  * PHP version 7.2 and above required
  *
@@ -20,8 +20,10 @@ namespace Biurad\Events\Tests;
 use Biurad\Events\LazyEventDispatcher;
 use Biurad\Events\TraceableEventDispatcher;
 use DivineNii\Invoker\Invoker;
+use Exception;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
+use Psr\Container\NotFoundExceptionInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use RuntimeException;
@@ -342,14 +344,14 @@ class TraceableEventDispatcherTest extends TestCase
         $tdispatcher = new TraceableEventDispatcher($dispatcher, new NullLogger());
         $tdispatcher->addListener(
             'foo',
-            function (Event $event, $eventName, $dispatcher, $hello = 'Divine') use (&$called): void {
+            function (Event $event, $eventName, EventDispatcherInterface $dispatcher, $hello = 'Divine') use (&$called): void {
                 $called[] = $hello;
             },
             10
         );
         $tdispatcher->addListener(
             'foo',
-            function (Event $event, $eventName, $dispatcher, NullLogger $logger) use (&$called): void {
+            function (Event $event, NullLogger $logger, EventDispatcherInterface $dispatcher) use (&$called): void {
                 $called[] = $logger;
             },
             20
@@ -364,16 +366,33 @@ class TraceableEventDispatcherTest extends TestCase
 
     public function testLazyDispatchWithContainerAndCallListeners(): void
     {
-        $called    = [];
-        $container = $this->getMockBuilder(ContainerInterface::class)->getMock();
-        $container->method('has')->with('logger')->willReturn(true);
-        $container->method('get')->with('logger')->willReturn(new NullLogger());
+        $called               = [];
+        $container            = new class () implements ContainerInterface {
+            private $services = [
+                'logger' => NullLogger::class,
+            ];
+
+            public function has($id)
+            {
+                return isset($this->services[$id]);
+            }
+
+            public function get($id)
+            {
+                if ($this->has($id)) {
+                    return new $this->services[$id]();
+                }
+
+                throw new class () extends Exception implements NotFoundExceptionInterface {
+                };
+            }
+        };
 
         $dispatcher  = new LazyEventDispatcher(new Invoker([], $container));
         $tdispatcher = new TraceableEventDispatcher($dispatcher);
         $tdispatcher->addListener(
             'foo',
-            function (Event $event, $eventName, $dispatcher, $logger) use (&$called): void {
+            function (Event $event, EventDispatcherInterface $dispatcher, $logger) use (&$called): void {
                 $called[] = $logger;
             }
         );

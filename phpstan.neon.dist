@@ -4,8 +4,6 @@ includes:
 parameters:
     level: max
     paths: [src]
-    excludes_analyse:
-        - src/Bridges/*
 
     ignoreErrors:
         -
@@ -22,4 +20,7 @@ parameters:
             path: src/TraceableEventDispatcher.php
         -
             message: "#^Call to an undefined method Biurad\\\\Events\\\\TraceableEventDispatcher\\:\\:getResolver\\(\\).$#"
+            path: src/WrappedListener.php
+        -
+            message: "#^Instanceof between Symfony\\\\Contracts\\\\EventDispatcher\\\\Event and Psr\\\\EventDispatcher\\\\StoppableEventInterface will always evaluate to true.$#"
             path: src/WrappedListener.php

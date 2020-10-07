@@ -48,7 +48,7 @@ class WrappedListenerTest extends TestCase
     public function testInvokeWithLazyDispatcherAndStoppedPropagation(): void
     {
         $wrappedListener = new WrappedListener(
-            function (Event $event, $eventName, $dispatcher, stdClass $object): void {
+            function (Event $event, $eventName, EventDispatcherInterface $dispatcher, stdClass $object): void {
                 $event->stopPropagation();
             },
             'hello'

@@ -17,11 +17,12 @@ declare(strict_types=1);
 
 namespace Biurad\Events;
 
-use ArgumentCountError;
 use Closure;
 use Psr\EventDispatcher\StoppableEventInterface;
 use ReflectionFunction;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Symfony\Contracts\EventDispatcher\Event;
+use TypeError;
 
 /**
  * @author Fabien Potencier <fabien@symfony.com>
@@ -76,7 +77,7 @@ final class WrappedListener
         }
     }
 
-    public function __invoke(object $event, string $eventName, EventDispatcherInterface $dispatcher): void
+    public function __invoke(Event $event, string $eventName, EventDispatcherInterface $dispatcher): void
     {
         $dispatcher = $this->dispatcher ?? $dispatcher;
 
@@ -86,13 +87,17 @@ final class WrappedListener
 
         try {
             ($this->listener)($event, $eventName, $dispatcher);
-        } catch (ArgumentCountError $e) {
+        } catch (TypeError $e) {
             if (!$dispatcher instanceof TraceableEventDispatcher) {
                 throw $e;
             }
 
             if ($this->isLazyDispatcher($dispatcher)) {
-                $dispatcher->getResolver()->call($this->listener, [$event, $eventName, $dispatcher]);
+                $dispatcher->getResolver()->call($this->listener, [
+                    \get_class($event)               => $event,
+                    'eventName'                      => $eventName,
+                    \get_class($dispatcher)          => $dispatcher,
+                ]);
             }
         }
 
