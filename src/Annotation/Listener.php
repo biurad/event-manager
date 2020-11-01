@@ -17,7 +17,7 @@ declare(strict_types=1);
 
 namespace Biurad\Events\Annotation;
 
-use BadMethodCallException;
+use InvalidArgumentException;
 
 /**
  *  Annotation class for @Listener().
@@ -25,37 +25,48 @@ use BadMethodCallException;
  * @Annotation
  * @Target({"CLASS", "METHOD"})
  */
-class Listener
+#[\Attribute(\Attribute::IS_REPEATABLE | \Attribute::TARGET_CLASS | \Attribute::TARGET_METHOD)]
+final class Listener
 {
-    /** @var int */
-    private $priority = 1;
-
-    /** @var null|string */
+    /** @var string */
     private $event;
 
+    /** @var int */
+    private $priority;
+
     /**
-     * @param array<string,mixed> $data
+     * @param @param array<string,mixed>|string $data
+     * @param string $event
+     * @param int $priority
      */
-    public function __construct(array $data = null)
+    public function __construct($data = null, string $event = null, int $priority = 0)
     {
-        if (isset($data['value'])) {
-            $data['event'] = (string) $data['value'];
+        if (is_array($data) && isset($data['value'])) {
+            $data['event'] = $data['value'];
             unset($data['value']);
+        } elseif (\is_string($data)) {
+            $data = ['event' => $data];
         }
 
-        foreach ($data ?? [] as $key => $listener) {
-            if (!\property_exists($this, $key)) {
-                throw new BadMethodCallException(
-                    \sprintf('Unknown property "%s" on annotation "%s".', $key, __CLASS__)
-                );
-            }
+        $this->event = $data['event'] ?? $event;
+        $this->priority = $data['priority'] ?? $priority;
 
-            $this->$key = $listener;
+        if (empty($this->event) || !\is_string($this->event)) {
+            throw new InvalidArgumentException(\sprintf(
+                '@Listener.event must %s.',
+                empty($this->event) ? 'be not an empty string' : 'contain only a string'
+            ));
+        }
+
+        if (!is_integer($this->priority)) {
+            throw new InvalidArgumentException('@Listener.priority must contain only an integer');
         }
     }
 
     /**
      * Get the event's priority
+     *
+     * @return int
      */
     public function getPriority(): int
     {
@@ -65,9 +76,9 @@ class Listener
     /**
      * Get the event listener
      *
-     * @return null|string
+     * @return string
      */
-    public function getEvent(): ?string
+    public function getEvent(): string
     {
         return $this->event;
     }
