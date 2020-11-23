@@ -8,7 +8,7 @@
 [![Quality Score](https://img.shields.io/scrutinizer/g/biurad/php-events-bus.svg?style=flat-square)](https://scrutinizer-ci.com/g/biurad/php-events-bus)
 [![Sponsor development of this project](https://img.shields.io/badge/sponsor%20this%20package-%E2%9D%A4-ff69b4.svg?style=flat-square)](https://biurad.com/sponsor)
 
-**biurad/php-events-bus** is a php events dispatcher for [PHP] 7.2+ based on [The Symfony EventDispatcher][symfony-event-dispatcher], created by [Fabien Potencier][@fabpot]. which provides tools that allow your application components to communicate with each other by dispatching events and listening to them.
+**biurad/php-events-bus** is an events dispatcher for [PHP] 7.2+ based on [The Symfony EventDispatcher][symfony-event-dispatcher], created by [Fabien Potencier][@fabpot]. which provides tools that allow your application components to communicate with each other by dispatching events and listening to them.
 
 [The Symfony EventDispatcher][symfony-event-dispatcher] component implements the [Mediator](https://en.wikipedia.org/wiki/Mediator_pattern) and [Observer](https://en.wikipedia.org/wiki/Observer_pattern) design patterns to make all these things possible and to make your projects truly extensible. This package adds a touch of [PSR-11] container, removes [The Symfony Stopwatch][symfony-stopwatch] component from traceable events, and adds a minor performance gain.
 
