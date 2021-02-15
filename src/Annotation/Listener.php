@@ -17,8 +17,6 @@ declare(strict_types=1);
 
 namespace Biurad\Events\Annotation;
 
-use InvalidArgumentException;
-
 /**
  *  Annotation class for @Listener().
  *
@@ -52,14 +50,14 @@ final class Listener
         $this->priority = $data['priority'] ?? $priority;
 
         if (empty($this->event) || !\is_string($this->event)) {
-            throw new InvalidArgumentException(\sprintf(
+            throw new \InvalidArgumentException(\sprintf(
                 '@Listener.event must %s.',
                 empty($this->event) ? 'be not an empty string' : 'contain only a string'
             ));
         }
 
         if (!is_integer($this->priority)) {
-            throw new InvalidArgumentException('@Listener.priority must contain only an integer');
+            throw new \InvalidArgumentException('@Listener.priority must contain only an integer');
         }
     }
 

@@ -20,13 +20,11 @@ namespace Biurad\Events\Tests;
 use Biurad\Events\LazyEventDispatcher;
 use Biurad\Events\TraceableEventDispatcher;
 use DivineNii\Invoker\Invoker;
-use Exception;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
-use RuntimeException;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Contracts\EventDispatcher\Event;
@@ -185,7 +183,7 @@ class TraceableEventDispatcherTest extends TestCase
     public function testNotCalledListenersWithException(): void
     {
         $dispatcher = $this->getMockBuilder(EventDispatcherInterface::class)->getMock();
-        $dispatcher->method('getListeners')->willThrowException($e = new RuntimeException());
+        $dispatcher->method('getListeners')->willThrowException($e = new \RuntimeException());
 
         $logger = $this->getMockBuilder(LoggerInterface::class)->getMock();
 
@@ -383,7 +381,7 @@ class TraceableEventDispatcherTest extends TestCase
                     return new $this->services[$id]();
                 }
 
-                throw new class () extends Exception implements NotFoundExceptionInterface {
+                throw new class () extends \Exception implements NotFoundExceptionInterface {
                 };
             }
         };

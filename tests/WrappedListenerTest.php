@@ -17,14 +17,10 @@ declare(strict_types=1);
 
 namespace Biurad\Events\Tests;
 
-use ArgumentCountError;
 use Biurad\Events\LazyEventDispatcher;
 use Biurad\Events\TraceableEventDispatcher;
 use Biurad\Events\WrappedListener;
-use Closure;
-use Generator;
 use PHPUnit\Framework\TestCase;
-use stdClass;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Contracts\EventDispatcher\Event;
@@ -48,7 +44,7 @@ class WrappedListenerTest extends TestCase
     public function testInvokeWithLazyDispatcherAndStoppedPropagation(): void
     {
         $wrappedListener = new WrappedListener(
-            function (Event $event, $eventName, EventDispatcherInterface $dispatcher, stdClass $object): void {
+            function (Event $event, $eventName, EventDispatcherInterface $dispatcher, \stdClass $object): void {
                 $event->stopPropagation();
             },
             'hello'
@@ -67,14 +63,14 @@ class WrappedListenerTest extends TestCase
             null
         );
 
-        $this->expectException(ArgumentCountError::class);
+        $this->expectException('ArgumentCountError');
         $wrappedListener(new Event(), 'hello', new EventDispatcher());
     }
 
     /**
-     * @return Generator
+     * @return \Generator
      */
-    public function provideListenersToDescribe(): Generator
+    public function provideListenersToDescribe(): \Generator
     {
         yield 'Test Pretty Callable String' => ['var_dump', 'var_dump'];
 
@@ -101,12 +97,12 @@ class WrappedListenerTest extends TestCase
         ];
 
         yield 'Test Pretty Closure Cast' => [
-            Closure::fromCallable([new Fixtures\FooListener(), 'listen']),
+            \Closure::fromCallable([new Fixtures\FooListener(), 'listen']),
             'Biurad\Events\Tests\Fixtures\FooListener::listen',
         ];
 
         yield 'Test Pretty Closure Static Cast' => [
-            Closure::fromCallable([Fixtures\FooListener::class, 'listenStatic']),
+            \Closure::fromCallable([Fixtures\FooListener::class, 'listenStatic']),
             'Biurad\Events\Tests\Fixtures\FooListener::listenStatic',
         ];
 
@@ -118,7 +114,7 @@ class WrappedListenerTest extends TestCase
         ];
 
         yield 'Test Pretty Cast Closure' => [
-            Closure::fromCallable(
+            \Closure::fromCallable(
                 function (): void {
                 }
             ),

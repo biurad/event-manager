@@ -17,12 +17,9 @@ declare(strict_types=1);
 
 namespace Biurad\Events;
 
-use Closure;
 use Psr\EventDispatcher\StoppableEventInterface;
-use ReflectionFunction;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Contracts\EventDispatcher\Event;
-use TypeError;
 
 /**
  * @author Fabien Potencier <fabien@symfony.com>
@@ -62,7 +59,7 @@ final class WrappedListener
     public function __construct($listener, ?string $name, EventDispatcherInterface $dispatcher = null)
     {
         if (\is_callable($listener)) {
-            $listener = Closure::fromCallable($listener);
+            $listener = \Closure::fromCallable($listener);
         }
 
         $this->listener           = $listener;
@@ -87,7 +84,7 @@ final class WrappedListener
 
         try {
             ($this->listener)($event, $eventName, $dispatcher);
-        } catch (TypeError $e) {
+        } catch (\TypeError $e) {
             if (!$dispatcher instanceof TraceableEventDispatcher) {
                 throw $e;
             }
@@ -173,8 +170,8 @@ final class WrappedListener
             return;
         }
 
-        if ($listener instanceof Closure) {
-            $r = new ReflectionFunction($listener);
+        if ($listener instanceof \Closure) {
+            $r = new \ReflectionFunction($listener);
 
             if (false !== \strpos($r->name, '{closure}')) {
                 $this->pretty = $this->name = 'closure';

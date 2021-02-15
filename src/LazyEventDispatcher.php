@@ -21,7 +21,6 @@ use DivineNii\Invoker\Interfaces\InvokerInterface;
 use DivineNii\Invoker\Invoker;
 use Psr\EventDispatcher\StoppableEventInterface;
 use Symfony\Component\EventDispatcher\EventDispatcher;
-use TypeError;
 
 /**
  * {@inheritdoc}
@@ -62,7 +61,7 @@ class LazyEventDispatcher extends EventDispatcher
 
             try {
                 $listener($event, $eventName, $this);
-            } catch (TypeError $error) {
+            } catch (\TypeError $error) {
                 $this->resolver->call($listener, [
                     \get_class($event)  => $event,
                     'eventName'         => $eventName,

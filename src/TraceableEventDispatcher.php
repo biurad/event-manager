@@ -17,10 +17,8 @@ declare(strict_types=1);
 
 namespace Biurad\Events;
 
-use Exception;
 use Psr\EventDispatcher\StoppableEventInterface;
 use Psr\Log\LoggerInterface;
-use SplObjectStorage;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
@@ -162,7 +160,7 @@ class TraceableEventDispatcher implements EventDispatcherInterface
         $eventName = $eventName ?? \get_class($event);
 
         if (null === $this->callStack) {
-            $this->callStack = new SplObjectStorage();
+            $this->callStack = new \SplObjectStorage();
         }
 
         if (null !== $this->logger && $event instanceof StoppableEventInterface && $event->isPropagationStopped()) {
@@ -212,7 +210,7 @@ class TraceableEventDispatcher implements EventDispatcherInterface
     {
         try {
             $allListeners = $this->getListeners();
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             if (null !== $this->logger) {
                 $this->logger->info(
                     'An exception was thrown while getting the uncalled listeners.',
